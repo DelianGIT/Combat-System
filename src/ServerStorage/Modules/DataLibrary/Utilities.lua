@@ -23,7 +23,8 @@ function Utilities.Reconcile(data:{[string]:any}, template:{[string]:any})
 	local result = {}
 
 	for key, templateValue in pairs(template) do
-		if type(key) ~= "string" then continue end
+		local keyType = type(key)
+		if keyType ~= "string" and keyType ~= "number" then continue end
 
 		local dataValue = data[key]
 		local valueType = type(templateValue)

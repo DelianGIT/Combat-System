@@ -3,12 +3,13 @@ local data = {
 	Name = "FirstSkill",
 	Cooldown = 1,
 	InputKey = Enum.KeyCode.Space,
-	InputState = "Begin"
+	InputState = "Begin",
+	Duration = 5
 }
 
 --// FUNCTIONS
 local functions = {
-	Begin = function()
+	Start = function()
 		print("Begin")
 	end,
 
@@ -21,4 +22,4 @@ local functions = {
 	end,
 }
 
-return data, functions
+return {data, functions}

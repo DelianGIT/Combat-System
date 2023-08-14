@@ -1,6 +1,5 @@
 --// SERVICES
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 
@@ -9,13 +8,6 @@ local ServerModules = ServerStorage.Modules
 local DataLibrary = require(ServerModules.DataLibrary)
 local TempData = require(ServerModules.TempData)
 local SkillLibrary = require(ServerModules.SkillLibrary)
-
---// PACKAGES
-local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
-
---// VARIABLES
-local remoteEvent = Red.Server("DataControl")
 
 --// CONFIG
 local STUDIO_MODE = false
@@ -27,20 +19,29 @@ local dataStore = DataLibrary.CreateDataStore("Main", {
 })
 
 TempData.SetProfileTemplate({
-	SkillPacks = {}
+	SkillPacks = {},
+	Cooldowns = {},
+	CanUseSkills = true
 })
-
---// FUNCTIONS
 
 --// CONTROL EVENTS
 Players.PlayerAdded:Connect(function(player:Player)
-	local loadedData = dataStore:LoadData(player, STUDIO_MODE)
-	if not loadedData then
+	local savedData = dataStore:LoadData(player, STUDIO_MODE)
+	if not savedData then
 		player:Kick("Error while loading data")
+		return
+	end
+
+	if player.Parent ~= Players then
+		return
 	end
 
 	local tempData = TempData.CreateProfile(player)
-	tempData.LoadedData = loadedData
+	tempData.SavedData = savedData
+
+	for _, packName in ipairs(savedData.Data.SkillPacks) do
+		SkillLibrary.GiveSkillPack(player, packName)
+	end
 end)
 
 Players.PlayerRemoving:Connect(function(player:Player)

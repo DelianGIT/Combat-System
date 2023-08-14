@@ -1,9 +1,9 @@
---// REQUIRING MAIN MODULES
-task.spawn(require, script.DataLoader)
-
 -- WATING FOR LOADED GAME
 repeat
 	task.wait()
 until game.Loaded
 
---// REQUIRING SECONDARY MODULES
+--// REQUIRING MODULES
+for _, module in ipairs(script:GetChildren()) do
+	task.spawn(require, module)
+end

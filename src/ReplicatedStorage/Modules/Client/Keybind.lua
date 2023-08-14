@@ -43,7 +43,7 @@ local function checkArguments(name:string, key:Key, functionToBind:() -> nil)
 	end
 
 	local keyType = key.EnumType
-	if keyType ~= "UserInputType" and keyType ~= "KeyCode" then
+	if keyType ~= Enum.UserInputType and keyType ~= Enum.KeyCode then
 		error("Invalid key")
 	end
 	
@@ -74,7 +74,7 @@ end
 
 local function processBegin(key:Key)
 	for _, keybind:Keybind in pairs(beginKeybinds) do
-		if key ~= keybind.Key then
+		if key == keybind.Key then
 			task.spawn(keybind.Function)
 		end
 	end

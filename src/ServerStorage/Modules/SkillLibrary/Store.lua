@@ -13,7 +13,7 @@ for _, packFolder in ipairs(skillsFolder:GetChildren()) do
 	local functionsPack = {}
 	
 	for _, skill in ipairs(packFolder:GetChildren()) do
-		local data, functions = require(skill)
+		local data, functions = table.unpack(require(skill))
 		dataPack[skill.Name] = data
 		functionsPack[skill.Name] = functions
 	end

@@ -37,7 +37,7 @@ end
 function TempData.GetData(player:Player)
 	local profile = profiles[player.Name]
 	if not profile then
-		warn(player.Name.."'s data not found")
+		warn(player.Name.."'s temp data not found")
 	else
 		return profile
 	end
@@ -45,7 +45,7 @@ end
 
 function TempData.RemoveData(player:Player)
 	if not profiles[player.Name] then
-		warn(player.Name.."'s data already doesnt exist")
+		warn(player.Name.."'s temp data already doesnt exist")
 	else
 		profiles[player.Name] = nil
 	end
