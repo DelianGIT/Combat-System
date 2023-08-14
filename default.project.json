@@ -1,0 +1,29 @@
+{
+	"name": "Combat System",
+	"tree": {
+	  "$className": "DataModel",
+  
+	  "ReplicatedStorage": {
+		"$className": "ReplicatedStorage",
+		"$ignoreUnknownInstances": true,
+		"$path": "src/ReplicatedStorage"
+	  },
+  
+	  "ReplicatedFirst": {
+		  "$className": "ReplicatedFirst",
+		  "$ignoreUnknownInstances": true,
+		  "$path": "src/ReplicatedFirst"
+	  },
+  
+	  "ServerScriptService": {
+		"$className": "ServerScriptService",
+		"$path": "src/ServerScriptService"
+	  },
+  
+	  "ServerStorage": {
+		"$className": "ServerStorage",
+		"$ignoreUnknownInstances": true,
+		"$path": "src/ServerStorage"
+	  }
+	}
+  }
