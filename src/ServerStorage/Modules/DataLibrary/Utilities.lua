@@ -1,28 +1,21 @@
 --// SERVICES
 local DataStoreService = game:GetService("DataStoreService")
+local ServerStorage = game:GetService("ServerStorage")
+
+--// MODULES
+local ServerModules = ServerStorage.Modules
+local UtilitiesModule = require(ServerModules.Utilities)
 
 --// VARIABLES
 local Utilities = {}
 
 --// MODULE FUNCTIONS
-function Utilities.DeepTableClone(tableToClone:{any})
-	local result = {}
-	
-	for key, value in pairs(tableToClone) do
-		if type(value) == "table" then
-			result[key] = Utilities.DeepTableClone(value)
-		else
-			result[key] = value
-		end
-	end
+Utilities.DeepTableClone = UtilitiesModule.DeepTableClone
 
-	return result
-end
-
-function Utilities.Reconcile(data:{[string]:any}, template:{[string]:any})
+function Utilities.Reconcile(data:{[string | number]:any}, template:{[string | number]:any})
 	local result = {}
 
-	for key, templateValue in pairs(template) do
+	for key, templateValue in template do
 		local keyType = type(key)
 		if keyType ~= "string" and keyType ~= "number" then continue end
 
@@ -51,8 +44,8 @@ function Utilities.WaitForRequestBudget(requestType:Enum.DataStoreRequestType)
 	local budget = DataStoreService:GetRequestBudgetForRequestType(requestType)
 
 	while budget < 1 do
-		budget = DataStoreService:GetRequestBudgetForRequestType(requestType)
 		task.wait(5)
+		budget = DataStoreService:GetRequestBudgetForRequestType(requestType)
 	end
 end
 

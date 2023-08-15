@@ -73,7 +73,7 @@ local function getKey(input:InputObject)
 end
 
 local function processBegin(key:Key)
-	for _, keybind:Keybind in pairs(beginKeybinds) do
+	for _, keybind:Keybind in beginKeybinds do
 		if key == keybind.Key then
 			task.spawn(keybind.Function)
 		end
@@ -81,7 +81,7 @@ local function processBegin(key:Key)
 end
 
 local function processEnd(key:Key)
-	for _, keybind:Keybind in pairs(endKeybinds) do
+	for _, keybind:Keybind in endKeybinds do
 		if key == keybind.Key then
 			task.spawn(keybind.Function)
 		end
@@ -89,7 +89,7 @@ local function processEnd(key:Key)
 end
 
 local function processBeginHold(key:Key)
-	for _, keybind:Keybind in pairs(holdKeybinds) do
+	for _, keybind:Keybind in holdKeybinds do
 		if key == keybind.Key then
 			local startTime = tick()
 			keybind.StartHoldTime = startTime
@@ -105,7 +105,7 @@ local function processBeginHold(key:Key)
 end
 
 local function processEndHold(key:Key)
-	for _, keybind:Keybind in pairs(holdKeybinds) do
+	for _, keybind:Keybind in holdKeybinds do
 		if key == keybind.Key then
 			if keybind.StartHoldTime > 0 and tick() - keybind.StartHoldTime >= keybind.HoldDuration then
 				keybind.StartHoldTime = 0
@@ -116,7 +116,7 @@ local function processEndHold(key:Key)
 end
 
 local function processDoubleClick(key:Key)
-	for _, keybind:Keybind in pairs(doubleClickKeybinds) do
+	for _, keybind:Keybind in doubleClickKeybinds do
 		if key == keybind.Key then
 			if keybind.LastClickTime == 0 then
 				keybind.LastClickTime = tick()

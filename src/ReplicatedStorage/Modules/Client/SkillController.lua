@@ -28,10 +28,11 @@ local requestedForEnd = false
 
 local packs = {}
 local activeSkills = {}
+local SkillController = {}
 
 --// FUNCTIONS
 local function startSkill(packName: string, skillName: string)
-	if waitingForStartConfirmation then return end
+	if waitingForStartConfirmation then print(1) return end
 
 	if packs[packName].CooldownStore:IsOnCooldown(skillName) then
 		return
@@ -46,23 +47,23 @@ local function startSkill(packName: string, skillName: string)
 end
 
 local function endSkill(packName: string, skillName: string)
+	if requestedForEnd then
+		return
+	end
+	
+	if not activeSkills[packName][skillName] then
+		return
+	end
+	
 	if waitingForStartConfirmation then
 		if waitingForStartConfirmation == packName..skillName then
+			requestedForEnd = true
 			repeat until not waitingForStartConfirmation
 		else
 			return
 		end
 	end
-
-	if requestedForEnd then
-		return
-	end
-
-	if not activeSkills[packName][skillName] then
-		return
-	end
-
-	requestedForEnd = true
+	
 	remoteEvent:Fire("End", packName, skillName)
 end
 
@@ -85,7 +86,8 @@ local function skillDidntEnd()
 	requestedForEnd = nil
 end
 
-local function addSkillPack(packName: string, keybindsInfo: KeybindsInfo)
+--// MODULE FUNCTIONS
+function SkillController.AddSkillPack(packName: string, keybindsInfo: KeybindsInfo)
 	if packs[packName] then
 		error("Pack " .. packName .. " already added")
 	end
@@ -93,7 +95,7 @@ local function addSkillPack(packName: string, keybindsInfo: KeybindsInfo)
 	local cooldownStore = CooldownController.CreateCooldownStore()
 
 	local keybinds = {}
-	for skillName, info in pairs(keybindsInfo) do
+	for skillName, info in keybindsInfo do
 		local hasEnd, cooldown, key, state, externalArg = table.unpack(info)
 
 		local beginKeybind = Keybind[state](skillName, key, externalArg or function()
@@ -116,28 +118,32 @@ local function addSkillPack(packName: string, keybindsInfo: KeybindsInfo)
 		CooldownStore = cooldownStore,
 	}
 	activeSkills[packName] = {}
+
+	print("Skill pack "..packName.." added")
 end
 
-local function removeSkillPack(packName: string)
+function SkillController.RemoveSkillPack(packName: string)
 	local pack = packs[packName]
 	if not pack then
 		error("Pack " .. packName .. " not found")
 	end
 
-	for _, keybind in pairs(pack.Keybinds) do
+	for _, keybind in pack.Keybinds do
 		keybind:Destroy()
 	end
 
 	packs[packName] = nil
 	activeSkills[packName] = nil
+
+	print("Skill pack "..packName.." removed")
 end
 
 --// EVENTS
-remoteEvent:On("AddPack", addSkillPack)
-remoteEvent:On("RemovePack", removeSkillPack)
+remoteEvent:On("AddPack", SkillController.AddSkillPack)
+remoteEvent:On("RemovePack", SkillController.RemoveSkillPack)
 remoteEvent:On("Started", skillStarted)
 remoteEvent:On("Ended", skillEnded)
 remoteEvent:On("DidntStart", skillDidntStart)
 remoteEvent:On("DidntEnd", skillDidntEnd)
 
-return true
+return SkillController

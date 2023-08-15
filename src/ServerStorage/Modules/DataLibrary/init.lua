@@ -5,16 +5,16 @@ local DataStoreService = game:GetService("DataStoreService")
 local ProfileStore = require(script.ProfileStore)
 local Utilities = require(script.Utilities)
 local SessionLocker = require(script.SessionLocker)
+local PlayerLocker = require(script.PlayerLocker)
 
 --// TYPES
 type DataStore = {
 	Name:string,
-	ProfileStore:ProfileStore.ProfileStore,
 
-	LoadData:(self:DataStore, player:Player, studioMode:boolean) -> {any},
-	GetData:(self:DataStore, player:Player) -> {any},
-	SaveData:(self:DataStore, player:Player, studioMode:boolean) -> nil,
-	RemoveData:(self:DataStore, player:Player, studioMode:boolean) -> nil
+	LoadData:(self:DataStore, player:Player, studioMode:boolean) -> ProfileStore.Profile,
+	GetData:(self:DataStore, player:Player) -> ProfileStore.Profile,
+	SaveData:(self:DataStore, player:Player, studioMode:boolean) -> (),
+	RemoveData:(self:DataStore, player:Player, studioMode:boolean) -> ()
 }
 
 --// CLASSES
@@ -22,113 +22,91 @@ local DataStore:DataStore = {}
 DataStore.__index = DataStore
 
 --// VARIABLES
+local studioMode = false
+
 local dataStores = {}
 
 --// CHECK IF DATA STORES ARE ENABLED
 if game.GameId < 1 then
-	warn("Game is not connected to a universe, cannot load DataStores.")
-	return { Success = false }
-end
-
---// FUNCTIONS
-local function lockPlayer(dataStore:DataStore, player:Player, reason:string)
-	dataStore._lockedPlayers[player] = reason
-end
-
-local function unlockPlayer(dataStore:DataStore, player:Player)
-	dataStore._lockedPlayers[player] = nil
-end
-
-local function isPlayerLocked(dataStore: DataStore, player:Player)
-	return dataStore._lockedPlayers[player]
-end
-
-local function waitForUnlockingPlayer(dataStore:DataStore, player:Player)
-	if isPlayerLocked(dataStore, player) then
-		repeat until not isPlayerLocked(dataStore, player)
-	end
+	warn("Game is not connected to a universe, cannot load DataStores")
+	return false
 end
 
 --// DATASTORE FUNCTIONS
-function DataStore:LoadData(player:Player, studioMode:boolean):ProfileStore.Profile
-	lockPlayer(self, player, "Loading")
+function DataStore:LoadData(player:Player):ProfileStore.Profile
+	self._playerLocker:Lock(player)
 
 	if studioMode then
-		local profile = self.ProfileStore:CreateProfile(player)
-		print("Loaded data from "..self.Name.." for "..player.Name)
-		unlockPlayer(self, player)
+		local profile = self._profileStore:CreateProfile(player)
+		print("Loaded "..player.Name.."'s data from "..self.Name)
+		self._playerLocker:Unlock(player)
 		return profile
 	end
 
 	local isLocked = self._sessionLocker:Lock(player)
 	if isLocked then
 		warn(player.Name.."'s session is locked")
-		unlockPlayer(self, player)
+		self._playerLocker:Unlock(player)
 		return
 	end
 
 	local success, data = Utilities.GetAsync(self._globalDataStore, player.UserId)
 	if not success then
-		unlockPlayer(self, player)
+		self._playerLocker:Unlock(player)
 		return false
 	else
-		local profile = self.ProfileStore:CreateProfile(player, data)
+		local profile = self._profileStore:CreateProfile(player, data)
 		print("Loaded data from "..self.Name.." for "..player.Name)
-		unlockPlayer(self, player)
+		self._playerLocker:Unlock(player)
 		return profile
 	end
 end
 
 function DataStore:GetData(player:Player):ProfileStore.Profile
-	return self.ProfileStore:GetProfile(player)
+	return self._profileStore:GetProfile(player)
 end
 
-function DataStore:SaveData(player:Player, studioMode:boolean):nil
-	waitForUnlockingPlayer(self, player)
-	lockPlayer(self, player, "Saving")
+function DataStore:SaveData(player:Player):()
+	self._playerLocker:WaitForUnlocking(player)
+	self._playerLocker:Lock(player)
 
-	local profile = self.ProfileStore:GetProfile(player)
+	local profile = self._profileStore:GetProfile(player)
 	if profile then
 		profile.Metadata.UpdatedTime = tick()
 		if not studioMode then
 			Utilities.SetAsync(self._globalDataStore, player.UserId, profile)
 		end
-		print("Saved data from "..self.Name.." for "..player.Name)
+		print("Saved data to "..self.Name.." for "..player.Name)
 	end
 
-	unlockPlayer(self, player)
+	self._playerLocker:Unlock(player)
 end
 
-function DataStore:RemoveData(player:Player, studioMode:boolean):nil
-	waitForUnlockingPlayer(self, player)
+function DataStore:RemoveData(player:Player):()
+	self._playerLocker:WaitForUnlocking(player)
 
-	self.ProfileStore:DeleteProfile(player)
+	self._profileStore:DeleteProfile(player)
 	if not studioMode then
 		self._sessionLocker:Unlock(player)
 	end
 	
-	print("Removed "..player.Name.."'s data of "..self.Name)
+	print("Removed "..player.Name.."'s data from "..self.Name)
 end
 
 --// MODULE FUNCTIONS
 return {
 	CreateDataStore = function(name:string, profileTemplate:ProfileStore.ProfileTemplate):DataStore
-		if type(name) ~= "string" then
-			error("Name must be a string")
-		end
-		if type(profileTemplate) ~= "table" then
-			error("Profile template must be a table")
-		end
-
 		local dataStore = setmetatable({
 			Name = name,
-			ProfileStore = ProfileStore.new(profileTemplate),
-			_globalDataStore = DataStoreService:GetDataStore(name),
-			_sessionLocker = SessionLocker.new(name),
-			_lockedPlayers = {}
+			_profileStore = ProfileStore.new(profileTemplate),
+			_globalDataStore = if studioMode then DataStoreService:GetDataStore(name) else nil,
+			_sessionLocker = if studioMode then SessionLocker.new(name) else nil,
+			_playerLocker = PlayerLocker.new()
 		}, DataStore)
 
 		dataStores[name] = dataStore
+
+		print("Created data store "..name)
 		return dataStore
 	end,
 
@@ -137,7 +115,11 @@ return {
 		if not dataStore then
 			error("DataStore "..name.." not found")
 		else
-			return dataStores[name]
+			return dataStore
 		end
+	end,
+
+	ToggleStudioMode = function(enabled:boolean)
+		studioMode = enabled
 	end
 }

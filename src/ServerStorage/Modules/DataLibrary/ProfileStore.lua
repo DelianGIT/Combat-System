@@ -3,7 +3,6 @@ local Utilities = require(script.Parent.Utilities)
 
 --// TYPES
 export type ProfileTemplate = {[string]:any}
-
 export type Profile = {
 	Data:ProfileTemplate,
 	Metadata:{
@@ -11,10 +10,10 @@ export type Profile = {
 		UpdatedTime:number
 	}
 }
-
 export type ProfileStore = {
-	Profiles:{Profile},
-	ProfileTemplate:ProfileTemplate
+	CreateProfile:(self:ProfileStore, player:Player, data:ProfileTemplate) -> Profile,
+	DeleteProfile:(self:ProfileStore, player:Player) -> (),
+	GetProfile:(self:ProfileStore, player:Player) -> Profile
 }
 
 --// CLASSES
@@ -25,49 +24,51 @@ ProfileStore.__index = ProfileStore
 function ProfileStore:CreateProfile(player:Player, data:ProfileTemplate?):Profile
 	local profile
 	if data then
-		profile = Utilities.Reconcile(data, self.ProfileTemplate)
+		profile = Utilities.Reconcile(data, self._profileTemplate)
 	else
-		profile = Utilities.DeepTableClone(self.ProfileTemplate)
+		profile = Utilities.DeepTableClone(self._profileTemplate)
 		profile.Metadata.CreatedTime = tick()
 	end
 
-	self.Profiles[player.UserId] = profile
+	self._profiles[player] = profile
+	print("Created data profile for "..player.Name)
+
 	return profile
 end
 
-function ProfileStore:DeleteProfile(player:Player):nil
-	if not self.Profiles[player.UserId] then
+function ProfileStore:DeleteProfile(player:Player):()
+	if not self._profiles[player] then
 		warn(player.Name.."'s profile already doesn't exist")
 	else
-		self.Profiles[player.UserId] = nil
+		self._profiles[player] = nil
+		print("Deleted "..player.Name.."'s data profile")
 	end
 end
 
 function ProfileStore:GetProfile(player:Player):Profile
-	local profile = self.Profiles[player.UserId]
+	local profile = self._profiles[player]
 	if not profile then
 		warn(player.Name.."'s profile not found")
 	else
-		return self.Profiles[player.UserId]
+		return profile
 	end
 end
 
 --// MODULE FUNCTIONS
 return {
 	new = function(profileTemplate:ProfileTemplate):ProfileStore
-		profileTemplate = {
-			Data = Utilities.DeepTableClone(profileTemplate),
-			Metadata = {
-				CreatedTime = 0,
-				UpdatedTime = 0
-			}
-		}
-
 		local profileStore = setmetatable({
-			Profiles = {},
-			ProfileTemplate = profileTemplate
+			_profiles = {},
+			_profileTemplate = {
+				Data = profileTemplate,
+				Metadata = {
+					CreatedTime = 0,
+					UpdatedTime = 0
+				}
+			}
 		}, ProfileStore)
 
+		print("Created profile store")
 		return profileStore
 	end
 }
