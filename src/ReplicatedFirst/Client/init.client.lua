@@ -4,7 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --// MODULES
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local ClientModules = Modules:WaitForChild("Client")
-local SharedModules = Modules:WaitForChild("Shared")
 local SkillController = require(ClientModules:WaitForChild("SkillController"))
 
 --// PACKAGES
@@ -38,14 +37,6 @@ until game.Loaded
 print("Game loaded")
 
 --// REQUIRING MODULES
-for _, module in ClientModules:GetChildren() do
-	require(module)
-end
-
-for _, module in SharedModules:GetChildren() do
-	require(module)
-end
-
 for _, module in script:GetChildren() do
 	task.spawn(require, module)
 end

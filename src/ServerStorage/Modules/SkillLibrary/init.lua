@@ -21,7 +21,7 @@ local Trove = require(Packages.Trove)
 type SkillUseState = "Start" | "End" | "Interrupt"
 type SkillState = "Start" | "ReadyToEnd" | "End" | "Interrupt"
 type Data = { [string]: any }
-type SkillFunction = (player: Player, playerTempData: Data, skillData: Data) -> nil
+type SkillFunction = (player: Player, playerTempData: Data, skillData: Data) -> ()
 
 --// VARIABLES
 local remoteEvent = Red.Server("SkillControl")
@@ -55,7 +55,9 @@ local function isSkillCanBeUsed(
 		return true
 	elseif useState == "End" then
 		local activeSkill = tempData.ActiveSkill
-		if not activeSkill then return end
+		if not activeSkill then
+			return
+		end
 
 		if activeSkill.Pack ~= packName or activeSkill.Skill ~= skillName or activeSkill.State ~= "ReadyToEnd" then
 			return
@@ -68,7 +70,9 @@ local function isSkillCanBeUsed(
 		return true
 	elseif useState == "Interrupt" then
 		local activeSkill = tempData.ActiveSkill
-		if not activeSkill then return end
+		if not activeSkill then
+			return
+		end
 
 		if activeSkill.Pack ~= packName or activeSkill.Skill ~= skillName or not activeSkill.Trove then
 			return
@@ -99,8 +103,8 @@ end
 --// SKILL USE FUNCTIONS
 function SkillUseFunctions.Start(
 	player: Player,
-	packName:string,
-	skillName:string,
+	packName: string,
+	skillName: string,
 	tempData: Data,
 	skillData: Data,
 	startFunction: SkillFunction,
@@ -128,7 +132,7 @@ function SkillUseFunctions.Start(
 	end
 
 	activeSkill.State = "Start"
-	print("Starting skill "..skillName.." of pack "..packName.." for "..player.Name)
+	print("Starting skill " .. skillName .. " of pack " .. packName .. " for " .. player.Name)
 	local success, err = pcall(startFunction, player, tempData, skillData, trove)
 
 	if endFunction and tempData.ActiveSkill then
@@ -142,7 +146,14 @@ function SkillUseFunctions.Start(
 	return success, err
 end
 
-function SkillUseFunctions.End(player: Player, packName:string, skillName:string, tempData: Data, skillData: Data, endFunction: SkillFunction)
+function SkillUseFunctions.End(
+	player: Player,
+	packName: string,
+	skillName: string,
+	tempData: Data,
+	skillData: Data,
+	endFunction: SkillFunction
+)
 	local activeSkill = tempData.ActiveSkill
 	if activeSkill.State ~= "ReadyToEnd" then
 		repeat
@@ -155,7 +166,7 @@ function SkillUseFunctions.End(player: Player, packName:string, skillName:string
 	tempData.Cooldowns[packName]:Start(skillName)
 
 	activeSkill.State = "End"
-	print("Ending skill "..skillName.." of pack "..packName.." for "..player.Name)
+	print("Ending skill " .. skillName .. " of pack " .. packName .. " for " .. player.Name)
 	local success, err = pcall(endFunction, player, tempData, skillData, trove)
 
 	remoteEvent:Fire(player, "Ended", packName, skillName)
@@ -164,8 +175,8 @@ function SkillUseFunctions.End(player: Player, packName:string, skillName:string
 	return success, err
 end
 
-function SkillUseFunctions.Interrupt(player:Player, tempData: Data, packName:string, skillName:string)
-	print("Interrupting skill "..skillName.." of pack "..packName.." for "..player.Name)
+function SkillUseFunctions.Interrupt(player: Player, tempData: Data, packName: string, skillName: string)
+	print("Interrupting skill " .. skillName .. " of pack " .. packName .. " for " .. player.Name)
 
 	tempData.ActiveSkill.State = "Interrupt"
 	tempData.ActiveSkill.Trove:Clean()
@@ -177,7 +188,7 @@ function SkillUseFunctions.Interrupt(player:Player, tempData: Data, packName:str
 end
 
 --// MODULE FUNCTIONS
-function SkillLibrary.GiveSkillPack(player:Player, playerTempData: {[any]:any}, packName: string)
+function SkillLibrary.GiveSkillPack(player: Player, playerTempData: { [any]: any }, packName: string)
 	local skillsFunctions = Store.Functions[packName]
 	local skillsData = Store.Data[packName]
 	if not skillsData or not skillsFunctions then
@@ -206,16 +217,22 @@ function SkillLibrary.GiveSkillPack(player:Player, playerTempData: {[any]:any}, 
 
 	remoteEvent:Fire(player, "AddPack", packName, keybindsInfo)
 
-	print("Gave skill pack "..packName.." to "..player.Name)
+	print("Gave skill pack " .. packName .. " to " .. player.Name)
 end
 
-function SkillLibrary.TakeSkillPack(player:Player, playerTempData: {[any]:any}, packName: string)
+function SkillLibrary.TakeSkillPack(player: Player, playerTempData: { [any]: any }, packName: string)
 	playerTempData.SkillPacks[packName] = nil
 	remoteEvent:Fire(player, "RemovePack", packName)
-	print("Took skill pack "..packName.." from "..player.Name)
+	print("Took skill pack " .. packName .. " from " .. player.Name)
 end
 
-function SkillLibrary.UseSkill(player: Player, playerTempData: {[any]:any}, useState: SkillUseState, packName: string, skillName: string)
+function SkillLibrary.UseSkill(
+	player: Player,
+	playerTempData: { [any]: any },
+	useState: SkillUseState,
+	packName: string,
+	skillName: string
+)
 	local skillData, skillFunctions = getPlayerSkill(playerTempData, packName, skillName)
 
 	if not isSkillCanBeUsed(playerTempData, skillData, skillFunctions, useState, packName, skillName) then
@@ -229,7 +246,15 @@ function SkillLibrary.UseSkill(player: Player, playerTempData: {[any]:any}, useS
 
 	local success, err
 	if useState == "Start" then
-		success, err = SkillUseFunctions.Start(player, packName, skillName, playerTempData, skillData, skillFunctions.Start, skillFunctions.End)
+		success, err = SkillUseFunctions.Start(
+			player,
+			packName,
+			skillName,
+			playerTempData,
+			skillData,
+			skillFunctions.Start,
+			skillFunctions.End
+		)
 		remoteEvent:Fire(player, "Started", packName, skillName)
 	elseif useState == "End" then
 		success, err = SkillUseFunctions.End(player, packName, skillName, playerTempData, skillData, skillFunctions.End)
@@ -242,13 +267,15 @@ function SkillLibrary.UseSkill(player: Player, playerTempData: {[any]:any}, useS
 	end
 end
 
+SkillLibrary.SkillStore = Store
+
 --// EVENTS
-remoteEvent:On("Start", function(player:Player, packName:string, skillName:string)
+remoteEvent:On("Start", function(player: Player, packName: string, skillName: string)
 	local tempData = TempData.GetData(player)
-	SkillLibrary.UseSkill(player, tempData,  "Start", packName, skillName)
+	SkillLibrary.UseSkill(player, tempData, "Start", packName, skillName)
 end)
 
-remoteEvent:On("End", function(player:Player, packName:string, skillName:string)
+remoteEvent:On("End", function(player: Player, packName: string, skillName: string)
 	local tempData = TempData.GetData(player)
 	SkillLibrary.UseSkill(player, tempData, "End", packName, skillName)
 end)

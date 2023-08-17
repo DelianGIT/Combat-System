@@ -12,7 +12,7 @@ local CooldownController = require(SharedModules.CooldownController)
 local ServerModules = ServerStorage.Modules
 local DataLibrary = require(ServerModules.DataLibrary)
 local TempData = require(ServerModules.TempData)
-local SkillStore = require(ServerModules.SkillLibrary.Store)
+local SkillLibrary = require(ServerModules.SkillLibrary)
 local Utilities = require(ServerModules.Utilities)
 
 --// PACKAGES
@@ -20,6 +20,7 @@ local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
 --// VARIABLES
+local skillStore = SkillLibrary.SkillStore
 local remoteEvent = Red.Server("LoadingControl")
 
 local loadedPlayers = {}
@@ -46,8 +47,8 @@ TempData.SetProfileTemplate({
 
 --// FUNCTIONS
 function giveSkillPack(tempData: { [any]: any }, packName: string)
-	local skillsFunctions = SkillStore.Functions[packName]
-	local skillsData = SkillStore.Data[packName]
+	local skillsFunctions = skillStore.Functions[packName]
+	local skillsData = skillStore.Data[packName]
 	if not skillsData or not skillsFunctions then
 		warn("Skill pack " .. packName .. " not found")
 		return

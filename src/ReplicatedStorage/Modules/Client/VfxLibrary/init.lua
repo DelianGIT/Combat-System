@@ -15,7 +15,7 @@ local remoteEvent = Red.Client("VfxControl")
 local VfxLibrary = {}
 
 --// MODULE FUNCTIONS
-function VfxLibrary.Start(packName: string, vfxName: string, character:Model, ...:any)
+function VfxLibrary.Start(packName: string, vfxName: string, character:Model, ...:any):()
 	if not character then return end
 
 	local pack = Store[packName]

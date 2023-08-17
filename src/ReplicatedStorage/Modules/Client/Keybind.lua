@@ -8,26 +8,26 @@ type Key = Enum.UserInputType | Enum.KeyCode
 type Keybind = {
 	Name:string,
 	InputState:InputState,
-	Function:() -> nil,
+	Function:() -> (),
 
 	HoldDuration:number?,
 	StartHoldTime:number?,
 	ClickFrame:number?,
 	Destroyed:boolean?,
 
-	Enable:(self:Keybind) -> nil,
-	Disable:(self:Keybind) -> nil,
-	Destroy:(self:Keybind) -> nil
+	Enable:(self:Keybind) -> (),
+	Disable:(self:Keybind) -> (),
+	Destroy:(self:Keybind) -> ()
 }
 
 --// CLASSES
 local Keybind:Keybind = {}
 Keybind.__index = function(self:Keybind, key:any)
-	if rawget(self, "Destroyed") then
+	if not rawget(self, "Destroyed") then
+		return Keybind[key]
+	else
 		error("Bind is destroyed")
 	end
-
-	return Keybind[key]
 end
 
 --// VARIABLES
@@ -37,21 +37,6 @@ local holdKeybinds = {}
 local doubleClickKeybinds = {}
 
 --// FUNCTIONS
-local function checkArguments(name:string, key:Key, functionToBind:() -> nil)
-	if type(name) ~= "string" then
-		error("Name must be a string")
-	end
-
-	local keyType = key.EnumType
-	if keyType ~= Enum.UserInputType and keyType ~= Enum.KeyCode then
-		error("Invalid key")
-	end
-	
-	if type(functionToBind) ~= "function" then
-		error("Pass function to bind")
-	end
-end
-
 local function getKeybindsFolder(inputState:InputState)
 	if inputState == "Begin" then
 		return beginKeybinds
@@ -129,7 +114,7 @@ local function processDoubleClick(key:Key)
 end
 
 --// KEYBIND FUNCTIONS
-local function createKeybind(name:string, key:Key, inputState:InputState, functionToBind:() -> nil):Keybind
+local function createKeybind(name:string, key:Key, inputState:InputState, functionToBind:() -> ()):Keybind
 	local keybind = setmetatable({
 		Name = name,
 		Key = key,
@@ -160,51 +145,39 @@ end
 
 --// EVENTS
 UserInputService.InputBegan:Connect(function(input:InputObject, gameProcessedEvent:boolean)
-	if gameProcessedEvent then return end
-
-	local key = getKey(input)
-	processBegin(key)
-	processBeginHold(key)
-	processDoubleClick(key)
+	if not gameProcessedEvent then
+		local key = getKey(input)
+		processBegin(key)
+		processBeginHold(key)
+		processDoubleClick(key)
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input:InputObject, gameProcessedEvent:boolean)
-	if gameProcessedEvent then return end
-
-	local key = getKey(input)
-	processEnd(key)
-	processEndHold(key)
+	if gameProcessedEvent then
+		local key = getKey(input)
+		processEnd(key)
+		processEndHold(key)
+	end
 end)
 
 --// MODULE FUNCTIONS
 return {
 	Begin = function(name:string, key:Key, functionToBind:() -> nil):Keybind
-		checkArguments(name, key, functionToBind)
 		createKeybind(name, key, "Begin", functionToBind)
 	end,
 
 	End = function(name:string, key:Key, functionToBind:() -> nil):Keybind
-		checkArguments(name, key, functionToBind)
 		createKeybind(name, key, "End", functionToBind)
 	end,
 
-	Hold = function(name:string, key:Key, holdDuration:number, functionToBind:() -> nil):Keybind
-		checkArguments(name, key, functionToBind)
-		if type(holdDuration) ~= "number" then
-			error("Hold duration must be a number")
-		end
-
+	Hold = function(name:string, key:Key, holdDuration:number, functionToBind:() -> ()):Keybind
 		local keybind = createKeybind(name, key, "Hold", functionToBind)
 		keybind.HoldDuration = holdDuration
 		keybind.StartHoldTime = 0
 	end,
 
-	DoubleClick = function(name:string, key:Key, clickFrame:number, functionToBind:() -> nil):Keybind
-		checkArguments(name, key, functionToBind)
-		if type(clickFrame) ~= "number" then
-			error("Click frame must be a number")
-		end
-
+	DoubleClick = function(name:string, key:Key, clickFrame:number, functionToBind:() -> ()):Keybind
 		local keybind = createKeybind(name, key, "DoubleClick", functionToBind)
 		keybind.ClickFrame = clickFrame
 		keybind.LastClickTime = 0
