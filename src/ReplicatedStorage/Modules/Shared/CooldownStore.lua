@@ -1,5 +1,13 @@
+--// TYPES
+export type CooldownStore = {
+	Add:(action:string, duration:number) -> (),
+	Start:(action:string) -> (),
+	Remove:(action:string) -> (),
+	IsOnCooldown:(action:string) -> ()
+}
+
 --// CLASSES
-local CooldownStore = {}
+local CooldownStore:CooldownStore = {}
 CooldownStore.__index = CooldownStore
 
 --// MODULE FUNCTIONS
@@ -21,7 +29,7 @@ function CooldownStore:IsOnCooldown(action:string)
 end
 
 return {
-	CreateCooldownStore = function()
+	new = function()
 		return setmetatable({}, CooldownStore)
 	end
 }

@@ -13,7 +13,11 @@ for _, folder in SKILLS_FOLDER:GetChildren() do
 	skillPacks[folder.Name] = pack
 	
 	for _, module in folder:GetChildren() do
-		pack[module.Name] = require(module)
+		local data, functions = require(module)
+		pack[module.Name] = {
+			Data = data,
+			Functions = functions
+		}
 	end
 end
 print("All skill packs required")
