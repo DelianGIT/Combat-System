@@ -286,6 +286,30 @@ remoteEvent:On("End", endSkill)
 
 --// MODULE FUNCTIONS
 return {
+	GetKeybindsInfoPack = function(packName:string)
+		local pack = SkillStore[packName]
+		if not pack then
+			warn("Skill pack "..packName.." not found")
+		end
+
+		local keybindsInfo = {}
+		for name, skill in pack do
+			local data = skill.Data
+			local functions = skill.Functions
+
+			keybindsInfo[name] = {
+				if functions.End then true else false,
+				data.Cooldown,
+				data.InputKey,
+				data.InputState,
+				data.ClickFrame,
+				data.HoldDuration,
+			}
+		end
+
+		return keybindsInfo
+	end,
+
 	GiveSkillPack = function(player:Player, tempData:{[string]:any}, name:string)
 		local skillPacks = tempData.SkillPacks
 

@@ -47,10 +47,8 @@ end
 	A Trove is helpful for tracking any sort of object during
 	runtime that needs to get cleaned up at some point.
 ]=]
-local Trove:Trove = {}
+local Trove = {}
 Trove.__index = Trove
-
-export type Trove = typeof(Trove.new())
 
 --[=[
 	@return Trove

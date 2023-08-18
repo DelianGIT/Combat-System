@@ -6,7 +6,7 @@ local Modules = ReplicatedStorage.Modules
 local ClientModules = Modules.Client
 local SharedModules = Modules.Shared
 local Keybind = require(ClientModules.Keybind)
-local CooldownController = require(SharedModules.CooldownController)
+local CooldownStore = require(SharedModules.CooldownStore)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
@@ -32,7 +32,7 @@ local SkillController = {}
 
 --// FUNCTIONS
 local function startSkill(packName: string, skillName: string)
-	if waitingForStartConfirmation then print(1) return end
+	if waitingForStartConfirmation then return end
 
 	if packs[packName].CooldownStore:IsOnCooldown(skillName) then
 		return
@@ -92,7 +92,7 @@ function SkillController.AddSkillPack(packName: string, keybindsInfo: KeybindsIn
 		error("Pack " .. packName .. " already added")
 	end
 
-	local cooldownStore = CooldownController.CreateCooldownStore()
+	local cooldownStore = CooldownStore.new()
 
 	local keybinds = {}
 	for skillName, info in keybindsInfo do

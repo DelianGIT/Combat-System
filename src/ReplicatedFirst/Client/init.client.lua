@@ -45,12 +45,17 @@ print("Client started")
 
 --// EVENTS
 remoteEvent:On("SkillPacks", function(keybindsInfo)
+	print(keybindsInfo)
 	for packName, info in keybindsInfo do
 		SkillController.AddSkillPack(packName, info)
 	end
 
 	completeLoadingStage("SkillPacks")
 	print("Loaded skill packs")
+end)
+
+remoteEvent:On("Test", function(...)
+	print(...)
 end)
 
 remoteEvent:Fire("ReadyForData")

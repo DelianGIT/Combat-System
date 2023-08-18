@@ -14,12 +14,12 @@ if RunService:IsServer() then
 	end
 
 	local function PlayerAdded(Player: Player)
-		local NewClientFolder = Instance.new("ScreenGui")
+		local ClientFolder = Instance.new("ScreenGui")
 
-		NewClientFolder.Enabled = false
-		NewClientFolder.ResetOnSpawn = false
-		NewClientFolder.Name = "Red"
-		NewClientFolder.Parent = Player:FindFirstChild("PlayerGui")
+		ClientFolder.Enabled = false
+		ClientFolder.ResetOnSpawn = false
+		ClientFolder.Name = "Red"
+		ClientFolder.Parent = Player:FindFirstChild("PlayerGui")
 	end
 
 	Players.PlayerAdded:Connect(PlayerAdded)
@@ -106,14 +106,14 @@ end
 
 function Server.Folder(self: Server, Player: Player?)
 	if Player then
-		local NewClientFolder = (Player:FindFirstChild("PlayerGui") :: any).Red :: ScreenGui
+		local ClientFolder = (Player:FindFirstChild("PlayerGui") :: any).Red :: ScreenGui
 
-		if NewClientFolder:FindFirstChild(self.Name) then
-			return NewClientFolder:FindFirstChild(self.Name) :: Folder
+		if ClientFolder:FindFirstChild(self.Name) then
+			return ClientFolder:FindFirstChild(self.Name) :: Folder
 		else
 			local Folder = Instance.new("Folder")
 			Folder.Name = self.Name
-			Folder.Parent = NewClientFolder
+			Folder.Parent = ClientFolder
 
 			return Folder :: Folder
 		end

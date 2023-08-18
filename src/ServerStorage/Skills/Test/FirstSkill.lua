@@ -22,4 +22,7 @@ local functions = {
 	end,
 }
 
-return {data, functions}
+return {
+	Data = data,
+	Functions = functions
+}

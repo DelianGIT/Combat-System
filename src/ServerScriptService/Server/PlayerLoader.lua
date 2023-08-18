@@ -5,22 +5,16 @@ local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 
 --// MODULES
-local Modules = ReplicatedStorage.Modules
-local SharedModules = Modules.Shared
-local CooldownController = require(SharedModules.CooldownController)
-
 local ServerModules = ServerStorage.Modules
 local DataLibrary = require(ServerModules.DataLibrary)
 local TempData = require(ServerModules.TempData)
 local SkillLibrary = require(ServerModules.SkillLibrary)
-local Utilities = require(ServerModules.Utilities)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
 --// VARIABLES
-local skillStore = SkillLibrary.SkillStore
 local remoteEvent = Red.Server("LoadingControl")
 
 local loadedPlayers = {}
@@ -46,36 +40,6 @@ TempData.SetProfileTemplate({
 })
 
 --// FUNCTIONS
-function giveSkillPack(tempData: { [any]: any }, packName: string)
-	local skillsFunctions = skillStore.Functions[packName]
-	local skillsData = skillStore.Data[packName]
-	if not skillsData or not skillsFunctions then
-		warn("Skill pack " .. packName .. " not found")
-		return
-	end
-	skillsData = Utilities.DeepTableClone(skillsData)
-
-	local cooldownStore = CooldownController.CreateCooldownStore()
-	tempData.Cooldowns[packName] = cooldownStore
-	tempData.SkillPacks[packName] = skillsData
-
-	local keybindsInfo = {}
-	for name, data in skillsData do
-		keybindsInfo[name] = {
-			if skillsFunctions[name].End then true else false,
-			data.Cooldown,
-			data.InputKey,
-			data.InputState,
-			data.ClickFrame,
-			data.HoldDuration,
-		}
-
-		cooldownStore:Add(name, data.Cooldown)
-	end
-
-	tempData.SkillsKeybindsInfo[packName] = keybindsInfo
-end
-
 local function loadCharacter(player: Player)
 	player:LoadCharacter()
 	print("Loaded " .. player.Name .. "'s character")
@@ -108,11 +72,9 @@ local function playerAdded(player: Player)
 	local tempData = TempData.CreateProfile(player)
 	tempData.SavedData = savedData
 
-	tempData.SkillsKeybindsInfo = {}
 	for _, packName in savedData.Data.SkillPacks do
-		giveSkillPack(tempData, packName)
+		SkillLibrary.GiveSkillPack(player, tempData, packName)
 	end
-	print("Loaded all " .. player.Name .. "'s skill packs")
 
 	loadedPlayers[player] = true
 	tempData.NotLoaded = nil
@@ -128,9 +90,14 @@ local function sendDataToClient(player: Player)
 		loadedPlayers[player] = nil
 	end
 
+	local savedData = dataStore:GetData(player)
 	local tempData = TempData.GetData(player)
 
-	remoteEvent:Fire(player, "SkillPacks", tempData.SkillsKeybindsInfo)
+	local keybindsInfo = {}
+	for _, packName in savedData.Data.SkillPacks do
+		keybindsInfo[packName] = SkillLibrary.GetKeybindsInfoPack(packName)
+	end
+	remoteEvent:Fire(player, "SkillPacks", keybindsInfo)
 	print("Sent " .. player.Name .. "'s skill packs keybinds info")
 
 	print("Sent all data to " .. player.Name .. "'s client")
