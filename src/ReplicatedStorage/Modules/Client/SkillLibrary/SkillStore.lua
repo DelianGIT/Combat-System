@@ -1,11 +1,11 @@
 --// SERVICES
-local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// VARIABLES
 local skillPacks = {}
 
 --// CONFIG
-local SKILLS_FOLDER = ServerStorage.Skills
+local SKILLS_FOLDER = ReplicatedStorage.Skills
 
 --// REQUIRING SKILLS
 for _, folder in SKILLS_FOLDER:GetChildren() do

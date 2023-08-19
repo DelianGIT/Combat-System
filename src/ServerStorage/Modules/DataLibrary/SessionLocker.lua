@@ -77,8 +77,6 @@ function SessionLocker:Lock(player:Player):boolean
 	if not success then
 		warn("Session locker "..self.Name.." threw an error: "..err)
 	elseif success and not wasLocked then
-		print("Locked session for "..player.Name)
-
 		self._lockedPlayers[player] = tick()
 		if not renewingEnabled then
 			enableRenewing()
@@ -97,8 +95,6 @@ function SessionLocker:Unlock(player:Player):()
 
 	if not success then
 		warn("Session locker "..self.Name.." threw an error: "..err)
-	else
-		print("Unlocked session for "..player.Name)
 	end
 end
 
@@ -113,7 +109,6 @@ return {
 
 		sessionLockers[name] = sessionLocker
 		
-		print("Created session locker")
 		return sessionLocker
 	end
 }

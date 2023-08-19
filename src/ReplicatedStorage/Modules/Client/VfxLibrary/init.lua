@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
-local Store = require(script.Store)
+local Store = require(script.VfxStore)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
@@ -30,7 +30,6 @@ function VfxLibrary.Start(packName: string, vfxName: string, character:Model, ..
 	
 	local trove = Trove.new()
 
-	print("Starting vfx "..vfxName.." of pack "..packName.." for "..character.Name)
 	local success, err = pcall(vfx, character, trove, ...)
 	if not success then
 		warn("Vfx "..vfxName.." of pack "..packName.." for "..character.Name.." threw an error: "..err)

@@ -42,7 +42,6 @@ TempData.SetProfileTemplate({
 --// FUNCTIONS
 local function loadCharacter(player: Player)
 	player:LoadCharacter()
-	print("Loaded " .. player.Name .. "'s character")
 end
 
 local function savePlayerData(player)
@@ -78,12 +77,11 @@ local function playerAdded(player: Player)
 
 	loadedPlayers[player] = true
 	tempData.NotLoaded = nil
-	print("Player " .. player.Name .. " loaded")
+
+	print(player.Name .. "'s data loaded")
 end
 
 local function sendDataToClient(player: Player)
-	print("Got client loaded signal from " .. player.Name)
-
 	if not loadedPlayers[player] then
 		repeat
 		until loadedPlayers[player]
@@ -98,7 +96,6 @@ local function sendDataToClient(player: Player)
 		keybindsInfo[packName] = SkillLibrary.GetKeybindsInfoPack(packName)
 	end
 	remoteEvent:Fire(player, "SkillPacks", keybindsInfo)
-	print("Sent " .. player.Name .. "'s skill packs keybinds info")
 
 	print("Sent all data to " .. player.Name .. "'s client")
 end
@@ -108,13 +105,14 @@ local function playerRemoving(player: Player)
 
 	savePlayerData(player)
 	TempData.DeleteData(player)
+
+	print(player.Name .. "'s data removed")
 end
 
 --// BINDING TO CLOSING OF GAME SAVING DATA OF ALL PLAYERS
 if not STUDIO_MODE then
 	game:BindToClose(function()
 		saveAllPlayersData()
-		print("Saved all players data before server closing")
 	end)
 end
 
@@ -123,7 +121,6 @@ if not STUDIO_MODE then
 	task.spawn(function()
 		while task.wait(AUTOSAVE_INTERVAL) do
 			saveAllPlayersData()
-			print("Autosave finished")
 		end
 	end)
 end

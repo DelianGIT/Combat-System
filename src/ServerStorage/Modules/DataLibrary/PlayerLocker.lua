@@ -32,7 +32,6 @@ end
 --// MODULE FUNCTIONS
 return {
 	new = function():PlayerLocker
-		print("Created player locker")
 		return setmetatable({
 			_lockedPlayers = {},
 		}, PlayerLocker)

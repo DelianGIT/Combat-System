@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --// MODULES
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local ClientModules = Modules:WaitForChild("Client")
-local SkillController = require(ClientModules:WaitForChild("SkillController"))
+local SkillLibrary = require(ClientModules:WaitForChild("SkillLibrary"))
 
 --// PACKAGES
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -45,17 +45,11 @@ print("Client started")
 
 --// EVENTS
 remoteEvent:On("SkillPacks", function(keybindsInfo)
-	print(keybindsInfo)
 	for packName, info in keybindsInfo do
-		SkillController.AddSkillPack(packName, info)
+		SkillLibrary.AddSkillPack(packName, info)
 	end
 
 	completeLoadingStage("SkillPacks")
-	print("Loaded skill packs")
-end)
-
-remoteEvent:On("Test", function(...)
-	print(...)
 end)
 
 remoteEvent:Fire("ReadyForData")

@@ -154,7 +154,7 @@ UserInputService.InputBegan:Connect(function(input:InputObject, gameProcessedEve
 end)
 
 UserInputService.InputEnded:Connect(function(input:InputObject, gameProcessedEvent:boolean)
-	if gameProcessedEvent then
+	if not gameProcessedEvent then
 		local key = getKey(input)
 		processEnd(key)
 		processEndHold(key)

@@ -31,7 +31,6 @@ function ProfileStore:CreateProfile(player:Player, data:ProfileTemplate?):Profil
 	end
 
 	self._profiles[player] = profile
-	print("Created data profile for "..player.Name)
 
 	return profile
 end
@@ -41,7 +40,6 @@ function ProfileStore:DeleteProfile(player:Player):()
 		warn(player.Name.."'s profile already doesn't exist")
 	else
 		self._profiles[player] = nil
-		print("Deleted "..player.Name.."'s data profile")
 	end
 end
 
@@ -68,7 +66,6 @@ return {
 			}
 		}, ProfileStore)
 
-		print("Created profile store")
 		return profileStore
 	end
 }

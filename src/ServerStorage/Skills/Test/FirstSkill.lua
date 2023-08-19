@@ -18,8 +18,8 @@ local functions = {
 	end,
 
 	Interrupt = function()
-		print("Interrupt")
-	end,
+		print("Server Interrupt")
+	end
 }
 
 return {

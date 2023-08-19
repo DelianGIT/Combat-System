@@ -11,6 +11,7 @@ local ServerModules = ServerStorage.Modules
 local Utilities = require(ServerModules.Utilities)
 local TempData = require(ServerModules.TempData)
 
+local Communicator = require(script.Communicator)
 local SkillStore = require(script.SkillStore)
 
 --// PACKAGES
@@ -55,8 +56,8 @@ SkillPack.__index = SkillPack
 local remoteEvent = Red.Server("SkillControl")
 
 --// FUNCTIONS
-local function isSkillCanBeStarted(tempData:{[string]:any}, skillData:SkillData, cooldownStore:CooldownStore.CooldownStore)
-	if cooldownStore:IsOnCooldown(skillData.Name) then
+local function isSkillCanBeStarted(tempData:{[string]:any}, skillName:string, cooldownStore:CooldownStore.CooldownStore)
+	if cooldownStore:IsOnCooldown(skillName) then
 		return
 	end
 
@@ -71,13 +72,13 @@ local function isSkillCanBeStarted(tempData:{[string]:any}, skillData:SkillData,
 	return true
 end
 
-local function isSkillCanBeEnded(tempData, skillData, skillFunctions)
+local function isSkillCanBeEnded(tempData:{[string]:any}, packName:string, skillName:string, skillFunctions)
 	local activeSkill = tempData.ActiveSkill
 	if not activeSkill then
 		return
 	end
 
-	if activeSkill.Pack ~= skillData.Pack or activeSkill.Skill ~= skillData.Name or activeSkill.State ~= "ReadyToEnd" then
+	if activeSkill.PackName ~= packName or activeSkill.SkillName ~= skillName or activeSkill.State ~= "ReadyToEnd" then
 		return
 	end
 
@@ -88,13 +89,13 @@ local function isSkillCanBeEnded(tempData, skillData, skillFunctions)
 	return true
 end
 
-local function isSkillCanBeInterrupted(tempData, skillData)
+local function isSkillCanBeInterrupted(tempData:{[string]:any}, packName:string, skillName:string, skillData:{[string]:any})
 	local activeSkill = tempData.ActiveSkill
 	if not activeSkill then
 		return
 	end
 
-	if activeSkill.Pack ~= skillData.Pack or activeSkill.Skill ~= skillData.Name or not activeSkill.Trove then
+	if activeSkill.PackName ~= packName or activeSkill.SkillName ~= skillName or not activeSkill.Trove then
 		return
 	end
 
@@ -131,7 +132,7 @@ end
 local function endSkill(player:Player, packName:string, skillName:string)
 	local tempData = TempData.GetData(player)
 	local pack = getSkillPack(player, tempData, packName)
-	pack:endSkill(skillName)
+	pack:EndSkill(skillName)
 end
 
 --// SKILL PACK FUNCTIONS
@@ -169,8 +170,8 @@ function SkillPack:StartSkill(name:string)
 	local tempData = self.TempData
 
 	local cooldownStore = self.CooldownStore
-	if not isSkillCanBeStarted(tempData, data, cooldownStore) then
-		remoteEvent:Fire(owner, "DidntStart")
+	if not isSkillCanBeStarted(tempData, name, cooldownStore) then
+		remoteEvent:Fire(owner, "StartDidntConfirm")
 		return
 	end
 
@@ -178,7 +179,8 @@ function SkillPack:StartSkill(name:string)
 
 	local startTime = tick()
 	local activeSkill = {
-		Name = name,
+		SkillName = name,
+		PackName = self.Name,
 		Skill = skill,
 		State = "Start",
 		StartTime = startTime
@@ -187,6 +189,8 @@ function SkillPack:StartSkill(name:string)
 
 	local trove = Trove.new()
 	activeSkill.Trove = trove
+
+	local communicator = self.Communicator
 
 	local duration = data.Duration
 	if duration and hasEnd then
@@ -198,21 +202,23 @@ function SkillPack:StartSkill(name:string)
 		end)
 	end
 
-	remoteEvent:Fire(owner, "Started", self.Name, name)
+	remoteEvent:Fire(owner, "StartConfirmed")
 
-	local success, err = pcall(functions.Start, data, owner, tempData, trove)
+	local success, err = pcall(functions.Start, data, owner, tempData, trove, communicator)
 	if not success then
 		warn("Start of skill "..name.." of pack "..self.Name.." for player "..owner.Name.." threw an error: "..err)
 		trove:Clean()
 		tempData.ActiveSkill = nil
 		cooldownStore:Start(name)
-		remoteEvent:Fire(owner, "Ended", self.Name, name)
+		communicator:DisconnectAll()
+		remoteEvent:Fire(owner, "Ended")
 	elseif hasEnd then
 		activeSkill.State = "ReadyToEnd"
 	else
 		tempData.ActiveSkill = nil
 		cooldownStore:Start(name)
-		remoteEvent:Fire(owner, "Ended", self.Name, name)
+		communicator:DisconnectAll()
+		remoteEvent:Fire(owner, "Ended")
 	end
 end
 
@@ -227,8 +233,8 @@ function SkillPack:EndSkill(name:string)
 	local data = skill.Data
 	local functions = skill.Functions
 
-	if not isSkillCanBeEnded(tempData, data, functions) then
-		remoteEvent:Fire(owner, "DidntEnd")
+	if not isSkillCanBeEnded(tempData, self.Name, name, functions) then
+		remoteEvent:Fire(owner, "EndDidntConfirm")
 		return
 	end
 	activeSkill.RequestedForEnd = true
@@ -239,14 +245,18 @@ function SkillPack:EndSkill(name:string)
 	activeSkill.State = "End"
 
 	local trove = activeSkill.Trove
+	local communicator = self.Communicator
 
-	local success, err = pcall(functions.End, data, owner, tempData, trove)
+	remoteEvent:Fire(owner, "EndConfirmed")
+
+	local success, err = pcall(functions.End, data, owner, tempData, trove, communicator)
 	if not success then
 		warn("Start of skill "..name.." of pack "..self.Name.." for player "..owner.Name.." threw an error: "..err)
 		trove:Clean()
 	end
 
-	remoteEvent:Fire(owner, "Ended", self.Name, name)
+	communicator:DisconnectAll()
+	remoteEvent:Fire(owner, "Ended")
 	self.CooldownStore:Start(name)
 	tempData.ActiveSkill = nil
 end
@@ -259,7 +269,7 @@ function SkillPack:InterruptSkill(name:string)
 	local data = skill.Data
 	local functions = skill.Functions
 
-	if not isSkillCanBeInterrupted(tempData, data) then
+	if not isSkillCanBeInterrupted(tempData, self.Name, name, data) then
 		return
 	end
 
@@ -267,15 +277,22 @@ function SkillPack:InterruptSkill(name:string)
 	activeSkill.State = "Interrupt"
 
 	local trove = activeSkill.Trove
+	local communicator = self.Communicator
 
 	local interruptFunction = functions.Interrupt
 	if interruptFunction then
-		interruptFunction(data, owner, tempData, trove)
+		remoteEvent:Fire(owner, "Interrupt")
+
+		local success, err = pcall(interruptFunction, data, owner, tempData, trove, communicator)
+		if not success then
+			warn("Interrupt of skill "..name.." of pack "..self.Name.." for player "..owner.Name.." threw an error: "..err)
+			trove:Clean()
+		end
 	else
 		trove:Clean()
 	end
 
-	remoteEvent:Fire(owner, "Ended", self.Name, name)
+	communicator:DisconnectAll()
 	tempData.ActiveSkill = nil
 	self.CooldownStore:Start(name)
 end
@@ -320,6 +337,7 @@ return {
 		local pack = makeSkillPack(name)
 		pack.Owner = player
 		pack.TempData = tempData
+		pack.Communicator = Communicator.new(player)
 
 		skillPacks[name] = pack
 	end,

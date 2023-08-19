@@ -14,13 +14,11 @@ local TempData = {}
 --// MODULE FUNCTIONS
 function TempData.SetProfileTemplate(template:{[string]:any})
 	profileTemplate = Utilities.DeepTableClone(template)
-	print("Set temp data profile template")
 end
 
 function TempData.CreateProfile(player:Player)
 	local profile = Utilities.DeepTableClone(profileTemplate)
 	profiles[player.Name] = profile
-	print("Created temp data profile for "..player.Name)
 	return profile
 end
 
@@ -38,7 +36,6 @@ function TempData.DeleteData(player:Player)
 		warn(player.Name.."'s temp data already doesnt exist")
 	else
 		profiles[player.Name] = nil
-		print("Deleted "..player.Name.."'s temp data profile")
 	end
 end
 
