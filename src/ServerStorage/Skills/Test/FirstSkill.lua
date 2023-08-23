@@ -10,15 +10,15 @@ local data = {
 --// FUNCTIONS
 local functions = {
 	Start = function()
-		print("Begin")
+		--print("Begin")
 	end,
 
 	End = function()
-		print("End")
+		--print("End")
 	end,
 
 	Interrupt = function()
-		print("Server Interrupt")
+		--print("Server Interrupt")
 	end
 }
 

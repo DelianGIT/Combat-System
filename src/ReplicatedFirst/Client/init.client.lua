@@ -19,15 +19,12 @@ local loadingStages = {
 local remoteEvent = Red.Client("LoadingControl")
 
 --// FUNCTIONS
-local function checkCompletedLoadingStages()
+local function completeLoadingStage(stageName:string)
+	table.remove(loadingStages, table.find(loadingStages, stageName))
+	
 	if #loadingStages == 0 then
 		remoteEvent:Fire("LoadCharacter")
 	end
-end
-
-local function completeLoadingStage(stageName:string)
-	table.remove(loadingStages, table.find(loadingStages, stageName))
-	checkCompletedLoadingStages()
 end
 
 -- WATING FOR LOADED GAME
