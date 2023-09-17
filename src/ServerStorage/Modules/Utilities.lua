@@ -1,9 +1,9 @@
 --// VARIABLES
 local Utilities = {}
 
-function Utilities.DeepTableClone(tableToClone:{[any]:any})
+function Utilities.DeepTableClone(tableToClone: { [any]: any })
 	local result = {}
-	
+
 	for key, value in tableToClone do
 		if type(value) == "table" then
 			result[key] = Utilities.DeepTableClone(value)

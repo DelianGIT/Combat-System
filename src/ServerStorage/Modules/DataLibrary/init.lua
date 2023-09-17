@@ -9,16 +9,16 @@ local PlayerLocker = require(script.PlayerLocker)
 
 --// TYPES
 type DataStore = {
-	Name:string,
+	Name: string,
 
-	LoadData:(self:DataStore, player:Player, studioMode:boolean) -> ProfileStore.Profile,
-	GetData:(self:DataStore, player:Player) -> ProfileStore.Profile,
-	SaveData:(self:DataStore, player:Player, studioMode:boolean) -> (),
-	RemoveData:(self:DataStore, player:Player, studioMode:boolean) -> ()
+	LoadData: (self: DataStore, player: Player, studioMode: boolean) -> ProfileStore.Profile,
+	GetData: (self: DataStore, player: Player) -> ProfileStore.Profile,
+	SaveData: (self: DataStore, player: Player, studioMode: boolean) -> (),
+	RemoveData: (self: DataStore, player: Player, studioMode: boolean) -> (),
 }
 
 --// CLASSES
-local DataStore:DataStore = {}
+local DataStore: DataStore = {}
 DataStore.__index = DataStore
 
 --// VARIABLES
@@ -33,7 +33,7 @@ if game.GameId < 1 then
 end
 
 --// DATASTORE FUNCTIONS
-function DataStore:LoadData(player:Player):ProfileStore.Profile
+function DataStore:LoadData(player: Player): ProfileStore.Profile
 	self._playerLocker:Lock(player)
 
 	if studioMode then
@@ -44,7 +44,7 @@ function DataStore:LoadData(player:Player):ProfileStore.Profile
 
 	local isLocked = self._sessionLocker:Lock(player)
 	if isLocked then
-		warn(player.Name.."'s session is locked")
+		warn(player.Name .. "'s session is locked")
 		self._playerLocker:Unlock(player)
 		return
 	end
@@ -52,7 +52,7 @@ function DataStore:LoadData(player:Player):ProfileStore.Profile
 	local success, data = Utilities.GetAsync(self._globalDataStore, player.UserId)
 	if not success then
 		self._playerLocker:Unlock(player)
-		return false
+		return false, data
 	else
 		local profile = self._profileStore:CreateProfile(player, data)
 		self._playerLocker:Unlock(player)
@@ -60,11 +60,11 @@ function DataStore:LoadData(player:Player):ProfileStore.Profile
 	end
 end
 
-function DataStore:GetData(player:Player):ProfileStore.Profile
+function DataStore:GetData(player: Player): ProfileStore.Profile
 	return self._profileStore:GetProfile(player)
 end
 
-function DataStore:SaveData(player:Player):()
+function DataStore:SaveData(player: Player): ()
 	self._playerLocker:WaitForUnlocking(player)
 	self._playerLocker:Lock(player)
 
@@ -79,7 +79,7 @@ function DataStore:SaveData(player:Player):()
 	self._playerLocker:Unlock(player)
 end
 
-function DataStore:RemoveData(player:Player):()
+function DataStore:RemoveData(player: Player): ()
 	self._playerLocker:WaitForUnlocking(player)
 
 	self._profileStore:DeleteProfile(player)
@@ -90,13 +90,13 @@ end
 
 --// MODULE FUNCTIONS
 return {
-	CreateDataStore = function(name:string, profileTemplate:ProfileStore.ProfileTemplate):DataStore
+	CreateDataStore = function(name: string, profileTemplate: ProfileStore.ProfileTemplate): DataStore
 		local dataStore = setmetatable({
 			Name = name,
 			_profileStore = ProfileStore.new(profileTemplate),
 			_globalDataStore = if studioMode then DataStoreService:GetDataStore(name) else nil,
 			_sessionLocker = if studioMode then SessionLocker.new(name) else nil,
-			_playerLocker = PlayerLocker.new()
+			_playerLocker = PlayerLocker.new(),
 		}, DataStore)
 
 		dataStores[name] = dataStore
@@ -104,16 +104,11 @@ return {
 		return dataStore
 	end,
 
-	GetDataStore = function(name:string):DataStore
-		local dataStore = dataStores[name]
-		if not dataStore then
-			error("DataStore "..name.." not found")
-		else
-			return dataStore
-		end
+	GetDataStore = function(name: string): DataStore
+		return dataStores[name]
 	end,
 
-	ToggleStudioMode = function(enabled:boolean)
+	ToggleStudioMode = function(enabled: boolean)
 		studioMode = enabled
-	end
+	end,
 }

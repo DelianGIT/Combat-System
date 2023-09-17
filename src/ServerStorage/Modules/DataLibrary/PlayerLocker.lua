@@ -1,39 +1,37 @@
 --// TYPES
 type PlayerLocker = {
-	Lock:(self:PlayerLocker, player:Player) -> (),
-	Unlock:(self:PlayerLocker, player:Player) -> (),
-	IsLocked:(self:PlayerLocker, player:Player) -> boolean,
-	WaitForUnlocking:(self:PlayerLocker, player:Player) -> ()
+	Lock: (self: PlayerLocker, player: Player) -> (),
+	Unlock: (self: PlayerLocker, player: Player) -> (),
+	IsLocked: (self: PlayerLocker, player: Player) -> boolean,
+	WaitForUnlocking: (self: PlayerLocker, player: Player) -> (),
 }
 
 --// CLASSES
-local PlayerLocker:PlayerLocker = {}
+local PlayerLocker: PlayerLocker = {}
 PlayerLocker.__index = PlayerLocker
 
 --// SESSIONLOCKER FUNCTIONS
-function PlayerLocker:Lock(player:Player):()
-	self._lockedPlayers[player] = true
+function PlayerLocker:Lock(player: Player): ()
+	self[player] = true
 end
 
-function PlayerLocker:Unlock(player:Player):()
-	self._lockedPlayers[player] = nil
+function PlayerLocker:Unlock(player: Player): ()
+	self[player] = nil
 end
 
-function PlayerLocker:IsLocked(player:Player):()
-	return self._lockedPlayers[player]
+function PlayerLocker:IsLocked(player: Player): ()
+	return self[player]
 end
 
-function PlayerLocker:WaitForUnlocking(player:Player):()
+function PlayerLocker:WaitForUnlocking(player: Player): ()
 	if self:IsLocked(player) then
-		repeat until not self:IsLocked(player)
+		repeat task.wait() until not self:IsLocked(player)
 	end
 end
 
 --// MODULE FUNCTIONS
 return {
-	new = function():PlayerLocker
-		return setmetatable({
-			_lockedPlayers = {},
-		}, PlayerLocker)
-	end
+	new = function(): PlayerLocker
+		return setmetatable({}, PlayerLocker)
+	end,
 }

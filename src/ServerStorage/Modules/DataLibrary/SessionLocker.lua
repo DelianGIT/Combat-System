@@ -3,12 +3,12 @@ local MemoryStoreService = game:GetService("MemoryStoreService")
 
 --// TYPES
 type SessionLocker = {
-	Lock:(self:SessionLocker, player:Player) -> boolean,
-	Unlock:(self:SessionLocker, player:Player) -> ()
+	Lock: (self: SessionLocker, player: Player) -> boolean,
+	Unlock: (self: SessionLocker, player: Player) -> (),
 }
 
 --// CLASSES
-local SessionLocker:SessionLocker = {}
+local SessionLocker: SessionLocker = {}
 SessionLocker.__index = SessionLocker
 
 --// VARIABLES
@@ -35,7 +35,9 @@ local function renewLocking()
 		local lockedPlayers = sessionLocker._lockedPlayers
 
 		for player, lastLock in lockedPlayers do
-			if tick() - lastLock < LOCK_DURATION then continue end
+			if tick() - lastLock < LOCK_DURATION then
+				continue
+			end
 			sortedMap:SetAsync(player.UserId, true, LOCK_DURATION)
 			lockedPlayers[player] = tick()
 		end
@@ -60,11 +62,11 @@ local function enableRenewing()
 end
 
 --// SESSIONLOCKER FUNCTIONS
-function SessionLocker:Lock(player:Player):boolean
+function SessionLocker:Lock(player: Player): boolean
 	local wasLocked = true
 
 	local success, err = pcall(function()
-		self._sortedMap:UpdateAsync(player.UserId, function(oldValue:boolean)
+		self._sortedMap:UpdateAsync(player.UserId, function(oldValue: boolean)
 			if oldValue then
 				return nil
 			else
@@ -75,7 +77,7 @@ function SessionLocker:Lock(player:Player):boolean
 	end)
 
 	if not success then
-		warn("Session locker "..self.Name.." threw an error: "..err)
+		warn("Session locker " .. self.Name .. " threw an error: " .. err)
 	elseif success and not wasLocked then
 		self._lockedPlayers[player] = tick()
 		if not renewingEnabled then
@@ -86,29 +88,29 @@ function SessionLocker:Lock(player:Player):boolean
 	return wasLocked
 end
 
-function SessionLocker:Unlock(player:Player):()
+function SessionLocker:Unlock(player: Player): ()
 	self._lockedPlayers[player] = nil
-	
+
 	local success, err = pcall(function()
 		self._sortedMap:RemoveAsync(player.UserId)
 	end)
 
 	if not success then
-		warn("Session locker "..self.Name.." threw an error: "..err)
+		warn("Session locker " .. self.Name .. " threw an error: " .. err)
 	end
 end
 
 --// MODULE FUNCTIONS
 return {
-	new = function(name:string):SessionLocker
+	new = function(name: string): SessionLocker
 		local sessionLocker = setmetatable({
 			Name = name,
 			_lockedPlayers = {},
-			_sortedMap = MemoryStoreService:GetSortedMap(name)
+			_sortedMap = MemoryStoreService:GetSortedMap(name),
 		}, SessionLocker)
 
 		sessionLockers[name] = sessionLocker
-		
+
 		return sessionLocker
-	end
+	end,
 }

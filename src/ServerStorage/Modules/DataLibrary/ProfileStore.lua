@@ -2,26 +2,26 @@
 local Utilities = require(script.Parent.Utilities)
 
 --// TYPES
-export type ProfileTemplate = {[string]:any}
+export type ProfileTemplate = { [string]: any }
 export type Profile = {
-	Data:ProfileTemplate,
-	Metadata:{
-		CreatedTime:number,
-		UpdatedTime:number
-	}
+	Data: ProfileTemplate,
+	Metadata: {
+		CreatedTime: number,
+		UpdatedTime: number,
+	},
 }
 export type ProfileStore = {
-	CreateProfile:(self:ProfileStore, player:Player, data:ProfileTemplate) -> Profile,
-	DeleteProfile:(self:ProfileStore, player:Player) -> (),
-	GetProfile:(self:ProfileStore, player:Player) -> Profile
+	CreateProfile: (self: ProfileStore, player: Player, data: ProfileTemplate) -> Profile,
+	DeleteProfile: (self: ProfileStore, player: Player) -> (),
+	GetProfile: (self: ProfileStore, player: Player) -> Profile,
 }
 
 --// CLASSES
-local ProfileStore:ProfileStore = {}
+local ProfileStore: ProfileStore = {}
 ProfileStore.__index = ProfileStore
 
 --// PROFILESTORE FUNCTIONS
-function ProfileStore:CreateProfile(player:Player, data:ProfileTemplate?):Profile
+function ProfileStore:CreateProfile(player: Player, data: ProfileTemplate?): Profile
 	local profile
 	if data then
 		profile = Utilities.Reconcile(data, self._profileTemplate)
@@ -35,18 +35,18 @@ function ProfileStore:CreateProfile(player:Player, data:ProfileTemplate?):Profil
 	return profile
 end
 
-function ProfileStore:DeleteProfile(player:Player):()
+function ProfileStore:DeleteProfile(player: Player): ()
 	if not self._profiles[player] then
-		warn(player.Name.."'s profile already doesn't exist")
+		warn(player.Name .. "'s profile already doesn't exist")
 	else
 		self._profiles[player] = nil
 	end
 end
 
-function ProfileStore:GetProfile(player:Player):Profile
+function ProfileStore:GetProfile(player: Player): Profile
 	local profile = self._profiles[player]
 	if not profile then
-		warn(player.Name.."'s profile not found")
+		warn(player.Name .. "'s profile not found")
 	else
 		return profile
 	end
@@ -54,18 +54,18 @@ end
 
 --// MODULE FUNCTIONS
 return {
-	new = function(profileTemplate:ProfileTemplate):ProfileStore
+	new = function(profileTemplate: ProfileTemplate): ProfileStore
 		local profileStore = setmetatable({
 			_profiles = {},
 			_profileTemplate = {
 				Data = profileTemplate,
 				Metadata = {
 					CreatedTime = 0,
-					UpdatedTime = 0
-				}
-			}
+					UpdatedTime = 0,
+				},
+			},
 		}, ProfileStore)
 
 		return profileStore
-	end
+	end,
 }

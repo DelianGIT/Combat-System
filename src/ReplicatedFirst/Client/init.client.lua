@@ -13,16 +13,17 @@ local Red = require(Packages:WaitForChild("Red"))
 --// VARIABLES
 local loadingStages = {
 	"Client",
-	"SkillPacks"
+	"SkillPacks",
 }
 
 local remoteEvent = Red.Client("LoadingControl")
 
 --// FUNCTIONS
-local function completeLoadingStage(stageName:string)
+local function completeLoadingStage(stageName: string)
 	table.remove(loadingStages, table.find(loadingStages, stageName))
-	
+
 	if #loadingStages == 0 then
+		print("Data loaded")
 		remoteEvent:Fire("LoadCharacter")
 	end
 end

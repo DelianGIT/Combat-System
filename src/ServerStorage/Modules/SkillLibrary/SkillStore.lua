@@ -11,7 +11,7 @@ local SKILLS_FOLDER = ServerStorage.Skills
 for _, folder in SKILLS_FOLDER:GetChildren() do
 	local pack = {}
 	skillPacks[folder.Name] = pack
-	
+
 	for _, module in folder:GetChildren() do
 		local success, result = pcall(require, module)
 		if success then

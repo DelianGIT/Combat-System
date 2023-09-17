@@ -41,6 +41,10 @@ TempData.SetProfileTemplate({
 
 --// FUNCTIONS
 local function loadCharacter(player: Player)
+	local existingCharacter = player.Character
+	if existingCharacter then
+		existingCharacter:Destroy()
+	end
 	player:LoadCharacter()
 end
 
@@ -68,8 +72,7 @@ local function playerAdded(player: Player)
 		return
 	end
 
-	local tempData = TempData.CreateProfile(player)
-	tempData.SavedData = savedData
+	local tempData = TempData.Create(player)
 
 	for _, packName in savedData.Data.SkillPacks do
 		SkillLibrary.GiveSkillPack(player, tempData, packName)
@@ -89,8 +92,7 @@ local function sendDataToClient(player: Player)
 	end
 
 	local savedData = dataStore:GetData(player)
-	local tempData = TempData.GetData(player)
-
+	
 	local keybindsInfo = {}
 	for _, packName in savedData.Data.SkillPacks do
 		keybindsInfo[packName] = SkillLibrary.GetKeybindsInfoPack(packName)
@@ -104,7 +106,7 @@ local function playerRemoving(player: Player)
 	print("Player " .. player.Name .. " removing")
 
 	savePlayerData(player)
-	TempData.DeleteData(player)
+	TempData.Delete(player)
 
 	print(player.Name .. "'s data removed")
 end
@@ -128,6 +130,7 @@ end
 --// EVENTS
 Players.PlayerAdded:Connect(playerAdded)
 Players.PlayerRemoving:Connect(playerRemoving)
+
 remoteEvent:On("ReadyForData", sendDataToClient)
 remoteEvent:On("LoadCharacter", loadCharacter)
 

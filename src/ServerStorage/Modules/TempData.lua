@@ -12,28 +12,28 @@ local profiles = {}
 local TempData = {}
 
 --// MODULE FUNCTIONS
-function TempData.SetProfileTemplate(template:{[string]:any})
+function TempData.SetProfileTemplate(template: { [string]: any })
 	profileTemplate = Utilities.DeepTableClone(template)
 end
 
-function TempData.CreateProfile(player:Player)
+function TempData.Create(player: Player)
 	local profile = Utilities.DeepTableClone(profileTemplate)
 	profiles[player.Name] = profile
 	return profile
 end
 
-function TempData.GetData(player:Player)
+function TempData.Get(player: Player)
 	local profile = profiles[player.Name]
 	if not profile then
-		warn(player.Name.."'s temp data not found")
+		warn(player.Name .. "'s temp data not found")
 	else
 		return profile
 	end
 end
 
-function TempData.DeleteData(player:Player)
+function TempData.Delete(player: Player)
 	if not profiles[player.Name] then
-		warn(player.Name.."'s temp data already doesnt exist")
+		warn(player.Name .. "'s temp data already doesnt exist")
 	else
 		profiles[player.Name] = nil
 	end

@@ -21,7 +21,7 @@ type KeybindsInfo = {
 	HasEnd: boolean,
 	Key: Enum.KeyCode | Enum.UserInputType,
 	State: "Begin" | "End" | "DoubleClick" | "Hold",
-	ExternalArg: number?
+	ExternalArg: number?,
 }
 
 --// VARIABLES
@@ -46,7 +46,7 @@ local function requestSkillStart(packName: string, skillName: string)
 		return
 	end
 
-	waitingForStartConfirmation = packName.."_"..skillName
+	waitingForStartConfirmation = packName .. "_" .. skillName
 	remoteEvent:Fire("Start", packName, skillName)
 end
 
@@ -75,7 +75,7 @@ local function startConfirmed()
 
 	local success, err = pcall(skill.Start, Communicator, newTrove)
 	if not success then
-		warn("Start of skill "..skillName.." of skill pack "..packName.." threw an error: "..err)
+		warn("Start of skill " .. skillName .. " of skill pack " .. packName .. " threw an error: " .. err)
 	end
 end
 
@@ -94,7 +94,7 @@ local function endConfirmed()
 
 	local success, err = pcall(skill.End, Communicator, trove)
 	if not success then
-		warn("End of skill "..skillName.." of skill pack "..packName.." threw an error: "..err)
+		warn("End of skill " .. skillName .. " of skill pack " .. packName .. " threw an error: " .. err)
 	end
 end
 
@@ -125,7 +125,7 @@ local function interrupt()
 	if interruptFunction then
 		local success, err = pcall(interruptFunction, trove)
 		if not success then
-			warn("Interrupt of skill "..skillName.." of skill pack "..packName.." threw an error: "..err)
+			warn("Interrupt of skill " .. skillName .. " of skill pack " .. packName .. " threw an error: " .. err)
 			trove:Clean()
 		end
 	else
@@ -146,7 +146,7 @@ end
 --// MODULE FUNCTIONS
 function SkillController.AddSkillPack(packName: string, keybindsInfo: KeybindsInfo)
 	if skillPacks[packName] then
-		error("Player already has skill pack "..packName)
+		error("Player already has skill pack " .. packName)
 	end
 
 	local cooldownStore = CooldownStore.new()
@@ -167,19 +167,19 @@ function SkillController.AddSkillPack(packName: string, keybindsInfo: KeybindsIn
 		end
 
 		cooldownStore:Add(skillName, cooldown)
-		keybinds[skillName] = if endKeybind then {beginKeybind, endKeybind} else beginKeybind
+		keybinds[skillName] = if endKeybind then { beginKeybind, endKeybind } else beginKeybind
 	end
 
 	skillPacks[packName] = {
 		Keybinds = keybinds,
-		CooldownStore = cooldownStore
+		CooldownStore = cooldownStore,
 	}
 end
 
 function SkillController.RemoveSkillPack(packName: string)
 	local pack = skillPacks[packName]
 	if not pack then
-		error("Player doesn't have skill pack "..packName)
+		error("Player doesn't have skill pack " .. packName)
 	end
 
 	for _, keybinds in pack.Keybinds do
