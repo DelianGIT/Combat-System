@@ -17,19 +17,23 @@ local redColor = Color3.fromRGB(255, 0, 0)
 --// CONFIG
 local FPS_CAP = 60
 
+--// LOCALIZED FUNCTIONS
+local clock = os.clock
+local clamp = math.clamp
+
 --// EVENTS
-RunService.Stepped:Connect(function()
-	if tick() - lastUpdateTime >= 1 then
+RunService.RenderStepped:Connect(function()
+	fps += 1
+
+	if clock - lastUpdateTime >= 1 then
 		amountLabel.Text = fps
 
-		local clampedFps = math.clamp(fps, 0, FPS_CAP)
+		local clampedFps = clamp(fps, 0, FPS_CAP)
 		amountLabel.TextColor3 = redColor:Lerp(greenColor, clampedFps / FPS_CAP)
 
-		lastUpdateTime = tick()
+		lastUpdateTime = clock
 		fps = 0
 	end
-
-	fps += 1
 end)
 
 return true
