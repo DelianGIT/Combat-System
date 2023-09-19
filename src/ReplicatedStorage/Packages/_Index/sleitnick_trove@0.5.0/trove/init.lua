@@ -26,6 +26,8 @@ local function GetObjectCleanupFunction(object, cleanupMethod)
 			return "Destroy"
 		elseif typeof(object.Disconnect) == "function" then
 			return "Disconnect"
+		elseif typeof(object.Disable) == "function" then
+			return "Disable"
 		end
 	end
 	error("Failed to get cleanup function for object " .. t .. ": " .. tostring(object), 3)
