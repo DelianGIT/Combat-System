@@ -5,10 +5,10 @@ local RunService = game:GetService("RunService")
 type HitFunction = (hit: Model) -> ()
 type Geometry = {
 	CFrame: CFrame,
-	Size: Vector3
+	Size: Vector3,
 } | {
 	Origin: Vector3,
-	Direction: Vector3
+	Direction: Vector3,
 } | BasePart
 type HitboxType = "SpatialQuery" | "Raycast"
 type Hitbox = {
@@ -20,7 +20,7 @@ type Hitbox = {
 
 	Enable: (self: Hitbox) -> (),
 	Disable: (self: Hitbox) -> (),
-	GetHits: (self: Hitbox) -> ({Model} | Model)
+	GetHits: (self: Hitbox) -> { Model } | Model,
 }
 
 --// CONFIG
@@ -42,11 +42,11 @@ hitboxPart.Transparency = if VISUALIZATION then 0 else 1
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Include
-raycastParams.FilterDescendantsInstances = {workspace.Living}
+raycastParams.FilterDescendantsInstances = { workspace.Living }
 
 local overlapParams = OverlapParams.new()
 overlapParams.FilterType = Enum.RaycastFilterType.Include
-overlapParams.FilterDescendantsInstances = {workspace.Living}
+overlapParams.FilterDescendantsInstances = { workspace.Living }
 
 local heartbeatConnection
 
@@ -122,7 +122,7 @@ end
 function HitboxMaker.new(geometry: Geometry, highAccuracy: boolean, enabled: boolean, hitFunction: HitFunction): Hitbox
 	local hitbox = setmetatable({
 		HitFunction = hitFunction,
-		Geometry = geometry
+		Geometry = geometry,
 	}, Hitbox)
 
 	if geometry.CFrame and geometry.Size then
@@ -131,7 +131,7 @@ function HitboxMaker.new(geometry: Geometry, highAccuracy: boolean, enabled: boo
 	elseif geometry.Origin and geometry.Direction then
 		hitbox.Type = "Raycast"
 	else
-		error("Invalid geometry: " ..  geometry)
+		error("Invalid geometry: " .. geometry)
 	end
 
 	if enabled then
@@ -142,7 +142,9 @@ function HitboxMaker.new(geometry: Geometry, highAccuracy: boolean, enabled: boo
 end
 
 function Hitbox:Enable()
-	if self.Enabled then return end
+	if self.Enabled then
+		return
+	end
 	self.Enabled = true
 
 	table.insert(enabledHitboxes, self)
@@ -153,7 +155,9 @@ function Hitbox:Enable()
 end
 
 function Hitbox:Disable()
-	if not self.Enabled then return end
+	if not self.Enabled then
+		return
+	end
 	self.Enabled = nil
 
 	table.remove(enabledHitboxes, table.find(enabledHitboxes, self))

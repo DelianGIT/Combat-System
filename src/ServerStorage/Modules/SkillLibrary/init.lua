@@ -215,7 +215,16 @@ function SkillPack:StartSkill(name: string)
 
 	local success, err = pcall(functions.Start, data, owner, tempData, trove, communicator)
 	if not success then
-		warn("Start of skill " .. name .. " of pack " .. self.Name .. " for player " .. owner.Name .. " threw an error: " .. err)
+		warn(
+			"Start of skill "
+				.. name
+				.. " of pack "
+				.. self.Name
+				.. " for player "
+				.. owner.Name
+				.. " threw an error: "
+				.. err
+		)
 		trove:Clean()
 		tempData.ActiveSkill = nil
 		cooldownStore:Start(name)
@@ -263,7 +272,16 @@ function SkillPack:EndSkill(name: string)
 
 	local success, err = pcall(functions.End, data, owner, tempData, trove, communicator)
 	if not success then
-		warn("End of skill " .. name .. " of pack " .. self.Name .. " for player " .. owner.Name .. " threw an error: " .. err)
+		warn(
+			"End of skill "
+				.. name
+				.. " of pack "
+				.. self.Name
+				.. " for player "
+				.. owner.Name
+				.. " threw an error: "
+				.. err
+		)
 		trove:Clean()
 	end
 
@@ -297,7 +315,16 @@ function SkillPack:InterruptSkill(name: string)
 
 		local success, err = pcall(interruptFunction, data, owner, tempData, trove, communicator)
 		if not success then
-			warn("Interrupt of skill " .. name .. " of pack " .. self.Name .. " for player " .. owner.Name .. " threw an error: " .. err)
+			warn(
+				"Interrupt of skill "
+					.. name
+					.. " of pack "
+					.. self.Name
+					.. " for player "
+					.. owner.Name
+					.. " threw an error: "
+					.. err
+			)
 			trove:Clean()
 		end
 	else

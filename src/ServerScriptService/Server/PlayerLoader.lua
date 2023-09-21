@@ -9,6 +9,7 @@ local ServerModules = ServerStorage.Modules
 local DataLibrary = require(ServerModules.DataLibrary)
 local TempData = require(ServerModules.TempData)
 local SkillLibrary = require(ServerModules.SkillLibrary)
+local CharacterMaker = require(ServerModules.CharacterMaker)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
@@ -37,15 +38,16 @@ TempData.SetProfileTemplate({
 	Cooldowns = {},
 	CanUseSkills = true,
 	NotLoaded = true,
+	NotLoadedCharacter = true
 })
 
 --// FUNCTIONS
-local function loadCharacter(player: Player)
-	local existingCharacter = player.Character
-	if existingCharacter then
-		existingCharacter:Destroy()
+local function loadCharacter(player: Player)	
+	local tempData = TempData.Get(player)
+	if tempData.NotLoadedCharacter then
+		tempData.NotLoadedCharacter = nil
+		CharacterMaker.Make(player)
 	end
-	player:LoadCharacter()
 end
 
 local function savePlayerData(player)

@@ -25,7 +25,9 @@ end
 
 function PlayerLocker:WaitForUnlocking(player: Player): ()
 	if self:IsLocked(player) then
-		repeat task.wait() until not self:IsLocked(player)
+		repeat
+			task.wait()
+		until not self:IsLocked(player)
 	end
 end
 
