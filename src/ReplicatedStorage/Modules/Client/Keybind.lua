@@ -164,22 +164,24 @@ end)
 --// MODULE FUNCTIONS
 return {
 	Begin = function(name: string, key: Key, functionToBind: () -> nil): Keybind
-		createKeybind(name, key, "Begin", functionToBind)
+		return createKeybind(name, key, "Begin", functionToBind)
 	end,
 
 	End = function(name: string, key: Key, functionToBind: () -> nil): Keybind
-		createKeybind(name, key, "End", functionToBind)
+		return createKeybind(name, key, "End", functionToBind)
 	end,
 
 	Hold = function(name: string, key: Key, holdDuration: number, functionToBind: () -> ()): Keybind
 		local keybind = createKeybind(name, key, "Hold", functionToBind)
 		keybind.HoldDuration = holdDuration
 		keybind.StartHoldTime = 0
+		return keybind
 	end,
 
 	DoubleClick = function(name: string, key: Key, clickFrame: number, functionToBind: () -> ()): Keybind
 		local keybind = createKeybind(name, key, "DoubleClick", functionToBind)
 		keybind.ClickFrame = clickFrame
 		keybind.LastClickTime = 0
+		return keybind
 	end,
 }

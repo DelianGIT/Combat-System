@@ -25,13 +25,13 @@ local clamp = math.clamp
 RunService.RenderStepped:Connect(function()
 	fps += 1
 
-	if clock - lastUpdateTime >= 1 then
+	if clock() - lastUpdateTime >= 1 then
 		amountLabel.Text = fps
 
 		local clampedFps = clamp(fps, 0, FPS_CAP)
 		amountLabel.TextColor3 = redColor:Lerp(greenColor, clampedFps / FPS_CAP)
 
-		lastUpdateTime = clock
+		lastUpdateTime = clock()
 		fps = 0
 	end
 end)

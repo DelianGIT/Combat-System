@@ -16,7 +16,9 @@ function CooldownStore:Add(action: string, duration: number)
 end
 
 function CooldownStore:Start(action: string)
-	self[action][1] = tick()
+	local cooldown = self[action]
+	cooldown[1] = tick()
+	return cooldown[2]
 end
 
 function CooldownStore:Remove(action: string)
