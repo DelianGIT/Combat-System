@@ -51,11 +51,10 @@ function Damager.Deal(attackerPlayer: Player, attackerCharacter: Model, targetCh
 		end
 	else
 		local targetHumanoid = targetCharacter.Humanoid
-		print(targetHumanoid, amount)
 		targetHumanoid:TakeDamage(amount)
 
 		if attackerPlayer and typeof(attackerPlayer) == "Instance" then
-			remoteEvent:Fire(attackerPlayer, "Hit", targetCharacter, amount)
+			remoteEvent:Fire(attackerPlayer, "Hit", attackerPlayer, targetCharacter, amount)
 		end
 
 		return "Hit"

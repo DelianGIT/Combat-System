@@ -37,7 +37,8 @@ local remoteEvent = Red.Client("SkillControl")
 
 local activeSkill, trove
 local requestedStart, requestedEnd
-local waitingForEnd, ending
+local waitingForEnd = false
+local ending = false
 
 local skillPacks = {}
 local SkillController = {}
@@ -63,6 +64,7 @@ local function ended()
 	Communicator.DisconnectAll()
 	trove = nil
 	activeSkill = nil
+	ending = false
 end
 
 local function interrupted()

@@ -254,13 +254,13 @@ function SkillPack:EndSkill(name: string)
 	if not character then return end
 	
 	local activeSkill = tempData.ActiveSkill
-	if activeSkill.RequestedForEnd then return end
+	if activeSkill.RequestedForEnd then print(3) return end
 
 	local trove = activeSkill.Trove
 	local communicator
 	if isPlayer then
 		communicator = self.Communicator
-	
+
 		if not isSkillCanBeEnded(tempData, self.Name, name, functions) then
 			remoteEvent:Fire(owner, "EndDidntConfirm")
 			return

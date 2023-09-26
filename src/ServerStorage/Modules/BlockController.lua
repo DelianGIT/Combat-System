@@ -29,10 +29,10 @@ function BlockController.IsBrokeBlock(tempData: { [any]: any }, damage: number)
 	end
 end
 
-function BlockController.EnableBlock(tempData: { [any]: any })
+function BlockController.EnableBlock(tempData: { [any]: any }, durability: number)
 	tempData.IsBlocking = true
 	tempData.BlockTime = tick()
-	tempData.BlockDurability = BLOCK_DURABILITY
+	tempData.BlockDurability = durability or BLOCK_DURABILITY
 end
 
 function BlockController.DisableBlock(tempData: { [any]: any })

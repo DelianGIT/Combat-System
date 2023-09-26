@@ -12,6 +12,8 @@ local charactersFolder = workspace.Living.Players
 
 local hpIndicator = ReplicatedStorage.Gui.HpIndicator
 
+local CharacterMaker = {}
+
 --// FUNCTIONS
 local function makeHpIndicator(player: Player, character: Model, humanoid: Humanoid)
 	local indicator = hpIndicator:Clone()
@@ -30,28 +32,31 @@ local function makeHpIndicator(player: Player, character: Model, humanoid: Human
 end
 
 --// MODULE FUNCTIONS
-return {
-	Make = function(player: Player)
-		local existingCharacter = player.Character
-		if existingCharacter then
-			existingCharacter:Destroy()
-		end
+function CharacterMaker.Make(player: Player)
+	local existingCharacter = player.Character
+	if existingCharacter then
+		existingCharacter:Destroy()
+	end
 
-		player.CharacterAdded:Once(function(newCharacter: Model)
-			RunService.Heartbeat:Once(function()
-				newCharacter.Archivable = true
-				newCharacter.Parent = charactersFolder
-				newCharacter.Archivable = false
-			end)
-
-			local humanoid = newCharacter.Humanoid
-			humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
-			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-			makeHpIndicator(player, newCharacter, humanoid)
-
-			BodyMover.CreateAttachment(newCharacter)
+	player.CharacterAdded:Once(function(newCharacter: Model)
+		RunService.Heartbeat:Once(function()
+			newCharacter.Archivable = true
+			newCharacter.Parent = charactersFolder
+			newCharacter.Archivable = false
 		end)
 
-		player:LoadCharacter()
-	end
-}
+		local humanoid = newCharacter.Humanoid
+		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		humanoid.Died:Connect(function()
+			CharacterMaker.Make(player)
+		end)
+		makeHpIndicator(player, newCharacter, humanoid)
+
+		BodyMover.CreateAttachment(newCharacter)
+	end)
+
+	player:LoadCharacter()
+end
+
+return CharacterMaker

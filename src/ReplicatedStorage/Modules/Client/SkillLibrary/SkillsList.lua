@@ -67,7 +67,7 @@ local function startCircularProgressBar(leftGradient: UIGradient, rightGradient:
 		Rotation = 0
 	})
 
-	rightTween.Completed:Connect(function()
+	rightTween.Completed:Once(function()
 		TweenService:Create(leftGradient, TweenInfo.new(halfDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
 			Rotation = 180
 		}):Play()
@@ -82,9 +82,11 @@ local function startActivationTween(uiGradient)
 		local tween = TweenService:Create(uiGradient, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
 			Offset = endVector2
 		})
-		tween.Completed:Connect(function()
+
+		tween.Completed:Once(function()
 			startActivationTween(uiGradient)
 		end)
+
 		tween:Play()
 	end
 end
@@ -175,17 +177,21 @@ function SkillsList.Started(skillFrame: Frame)
 	local gradient = skillFrame.SkillName.UIStroke.UIGradient
 	activeSkillGradient = gradient
 	activeSkill = true
+
 	TweenService:Create(gradient.Parent, activationTweenInfo, {
 		Thickness = 3
 	}):Play()
+	
 	startActivationTween(gradient)
 end
 
 function SkillsList.Ended()
 	activeSkill = nil
+
 	TweenService:Create(activeSkillGradient.Parent, activationTweenInfo, {
 		Thickness = 0
 	}):Play()
+
 	activeSkillGradient = nil
 end
 

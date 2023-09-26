@@ -25,7 +25,7 @@ type Hitbox = {
 }
 
 --// CONFIG
-local VISUALIZATION = true
+local VISUALIZATION = false
 
 --// CLASSES
 local Hitbox = {}
@@ -39,7 +39,7 @@ hitboxPart.Material = Enum.Material.SmoothPlastic
 hitboxPart.Color = Color3.new(1, 0, 0)
 hitboxPart.Anchored = true
 hitboxPart.CanCollide = false
-hitboxPart.Transparency = if VISUALIZATION then 0.7 else 1
+hitboxPart.Transparency = if VISUALIZATION then 0.8 else 1
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Include
