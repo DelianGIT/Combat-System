@@ -14,7 +14,7 @@ local BillboardGui = require(script.BillboardGui)
 local remoteEvent = Red.Client("DamageIndicator")
 
 --// EVENTS
-remoteEvent:On("Hit", function(attacker: Player | Model, target: Model, amount: number)
+remoteEvent:On("Hit", function(attacker: Model, target: Model, amount: number)
 	Highlight(target)
 	ScreenGui(amount)
 	BillboardGui(attacker, target, amount)

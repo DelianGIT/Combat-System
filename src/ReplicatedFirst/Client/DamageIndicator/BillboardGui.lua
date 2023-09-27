@@ -33,15 +33,15 @@ local function startTweens(guiPart: Part, amountLabel: TextLabel, attacker: Play
 		Size = amountLabelSize
 	})
 
-	tween.Completed:Once(function(playbackState: Enum.PlaybackState)
-		if playbackState ~= Enum.PlaybackState.Completed then return end
+	tween.Completed:Once(function(playbackState1: Enum.PlaybackState)
+		if playbackState1 ~= Enum.PlaybackState.Completed then return end
 
 		tween = TweenService:Create(amountLabel, amountLabelTweenInfo2, {
 			Size = zeroSize
 		})
 
-		tween.Completed:Once(function()
-			if playbackState ~= Enum.PlaybackState.Completed then return end
+		tween.Completed:Once(function(playbackState2: Enum.PlaybackState)
+			if playbackState2 ~= Enum.PlaybackState.Completed then return end
 			guiPart:Destroy()
 			attackersPastInfo[attacker] = nil
 		end)

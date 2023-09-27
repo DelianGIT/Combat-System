@@ -19,7 +19,7 @@ return function(target: Model)
 		FillTransparency = 0.5
 	}):Play()
 
-	task.delay(0.1, function()
+	task.delay(0.2, function()
 		newHighlight:Destroy()
 	end)
 end
