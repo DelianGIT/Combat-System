@@ -84,7 +84,7 @@ end
 
 local function changeRotation()
 	sign *= -1
-	mainFrame.Rotation = math.random(1, 10) * sign
+	mainFrame.Rotation = math.random(1, 15) * sign
 end
 
 --// MODULE FUNCTION

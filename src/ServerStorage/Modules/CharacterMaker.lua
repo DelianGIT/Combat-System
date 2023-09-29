@@ -1,4 +1,5 @@
 --// SERVICES
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,8 +32,21 @@ local function makeHpIndicator(player: Player, character: Model, humanoid: Human
 	end)
 end
 
+local function checkActiveSkill(tempData: {})
+	local activeSkill = tempData.ActiveSkill
+	if activeSkill then
+		local packName = activeSkill.PackName
+		local skillName = activeSkill.SkillName
+		task.spawn(function()
+			tempData.SkillPacks[packName]:QuickInterrupt(skillName)
+		end)
+	end
+end
+
 --// MODULE FUNCTIONS
-function CharacterMaker.Make(player: Player)
+function CharacterMaker.Make(player: Player, tempData: {})
+	if not player.Parent == Players then return end
+
 	local existingCharacter = player.Character
 	if existingCharacter then
 		existingCharacter:Destroy()
@@ -49,7 +63,8 @@ function CharacterMaker.Make(player: Player)
 		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 		humanoid.Died:Connect(function()
-			CharacterMaker.Make(player)
+			checkActiveSkill(tempData)
+			CharacterMaker.Make(player, tempData)
 		end)
 		makeHpIndicator(player, newCharacter, humanoid)
 

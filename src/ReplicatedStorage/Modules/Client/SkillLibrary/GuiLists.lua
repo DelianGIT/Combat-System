@@ -8,7 +8,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SkillsList"
+screenGui.Name = "SkillsLists"
 screenGui.ResetOnSpawn = false
 
 local guiFolder = ReplicatedStorage.Gui.SkillsList
@@ -30,8 +30,7 @@ local activationTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.Eas
 local startVector2 = Vector2.new(-1, 0)
 local endVector2 = Vector2.new(1, 0)
 
-local skillLists = {}
-local SkillsList = {}
+local GuiLists = {}
 
 local activeSkillGradient, activeSkill
 
@@ -92,17 +91,33 @@ local function startActivationTween(uiGradient)
 end
 
 --// MODULE FUNCTIONS
-function SkillsList.Open(name: string)
-	local list = skillLists[name]
+function GuiLists.Create(packName: string)
+	local list = listTemplate:Clone()
+	list.Name = packName
+	list.Visible = true
+	list.Parent = screenGui
+
+	return list
+end
+
+function GuiLists.Destroy(list: Frame)
+	if activeSkill and activeSkill:IsDescendantOf(list) then
+		activeSkill = nil
+	end
+	if activeSkillGradient and activeSkillGradient:IsDescendantOf(list) then
+		activeSkillGradient = nil
+	end
+end
+
+function GuiLists.Open(list: Frame)
 	list:TweenPosition(openedPosition, Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true)
 end
 
-function SkillsList.Close(name)
-	local list = skillLists[name]
+function GuiLists.Close(list: Frame)
 	list:TweenPosition(closedPosition, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
 end
 
-function SkillsList.AddSkill(list: Frame, skillName: string, keybind: Enum.KeyCode | Enum.UserInputType)
+function GuiLists.AddSkill(list: Frame, skillName: string, keybind: Enum.KeyCode | Enum.UserInputType)
 	local skill = skillTemplate:Clone()
 	skill.Name = skillName
 	skill.SkillName.Value.Text = skillName
@@ -118,18 +133,7 @@ function SkillsList.AddSkill(list: Frame, skillName: string, keybind: Enum.KeyCo
 	return skill
 end
 
-function SkillsList.CreateList(packName: string)
-	local list = listTemplate:Clone()
-	list.Name = packName
-	list.Visible = true
-	list.Parent = screenGui
-
-	skillLists[packName] = list
-
-	return list
-end
-
-function SkillsList.StartCooldown(skill: Frame, duration: number)
+function GuiLists.StartCooldown(skill: Frame, duration: number)
 	local cooldown = skill.Cooldown
 	local cooldownValue = cooldown.Value.Value
 	local leftGradient = cooldown.Left.Frame.UIGradient
@@ -161,22 +165,22 @@ function SkillsList.StartCooldown(skill: Frame, duration: number)
 	startCircularProgressBar(leftGradient, rightGradient, duration)
 end
 
-function SkillsList.Pressed(uiStroke: UIStroke)
+function GuiLists.Pressed(uiStroke: UIStroke)
 	TweenService:Create(uiStroke, pressedTweenInfo, {
 		Thickness = 3
 	}):Play()
 end
 
-function SkillsList.Unpressed(uiStroke: UIStroke)
+function GuiLists.Unpressed(uiStroke: UIStroke)
 	TweenService:Create(uiStroke, unpressedTweenInfo, {
 		Thickness = 0
 	}):Play()
 end
 
-function SkillsList.Started(skillFrame: Frame)
+function GuiLists.Started(skillFrame: Frame)
 	local gradient = skillFrame.SkillName.UIStroke.UIGradient
 	activeSkillGradient = gradient
-	activeSkill = true
+	activeSkill = skillFrame
 
 	TweenService:Create(gradient.Parent, activationTweenInfo, {
 		Thickness = 3
@@ -185,7 +189,7 @@ function SkillsList.Started(skillFrame: Frame)
 	startActivationTween(gradient)
 end
 
-function SkillsList.Ended()
+function GuiLists.Ended()
 	activeSkill = nil
 
 	TweenService:Create(activeSkillGradient.Parent, activationTweenInfo, {
@@ -200,4 +204,4 @@ player.CharacterAdded:Once(function()
 	screenGui.Parent = player.PlayerGui
 end)
 
-return SkillsList
+return GuiLists

@@ -1,25 +1,26 @@
 --// SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
---// VARIABLES
-local skillPacks = {}
-
 --// CONFIG
 local SKILLS_FOLDER = ReplicatedStorage.Skills
 
+--// VARIABLES
+local storedSkills = {}
+
 --// REQUIRING SKILLS
 for _, folder in SKILLS_FOLDER:GetChildren() do
-	local pack = {}
-	skillPacks[folder.Name] = pack
+	local skills = {}
 
 	for _, module in folder:GetChildren() do
 		local success, result = pcall(require, module)
 		if success then
-			pack[module.Name] = result
+			skills[module.Name] = result
 		else
 			warn("Skill module " .. module.Name .. " of pack " .. folder.Name .. " threw an error: " .. result)
 		end
 	end
+
+	storedSkills[folder.Name] = skills
 end
 
-return skillPacks
+return storedSkills

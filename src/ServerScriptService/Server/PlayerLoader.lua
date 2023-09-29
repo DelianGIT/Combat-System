@@ -77,8 +77,9 @@ local function playerAdded(player: Player)
 	local tempData = TempData.Create(player)
 
 	for _, packName in savedData.Data.SkillPacks do
-		SkillLibrary.GiveSkillPack(player, tempData, packName)
+		SkillLibrary.GiveSkillPack(packName, player, tempData)
 	end
+	SkillLibrary.MakeSkillEvents(tempData)
 
 	loadedPlayers[player] = true
 	tempData.NotLoaded = nil
@@ -97,7 +98,7 @@ local function sendDataToClient(player: Player)
 	
 	local keybindsInfo = {}
 	for _, packName in savedData.Data.SkillPacks do
-		keybindsInfo[packName] = SkillLibrary.GetKeybindsInfoPack(packName)
+		keybindsInfo[packName] = SkillLibrary.GetSkillsKeybindsInfo(packName)
 	end
 	remoteEvent:Fire(player, "SkillPacks", keybindsInfo)
 

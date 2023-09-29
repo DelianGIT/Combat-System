@@ -53,22 +53,15 @@ function Connection:Disconnect(): nil
 end
 
 --// SIGNAL FUNCTIONS
-function Signal:Fire(...: any): nil
+function Signal:Fire(...: any)
 	local connection = self._lastConnection
-	if not connection then
-		repeat
-			task.wait()
-		until self._lastConnection
-		connection = self._lastConnection
-	end
-
 	while connection do
 		connection = connection._previousConnection
 		task.spawn(connection._connectedFunction, ...)
 	end
 end
 
-function Signal:DisconnectAll(): nil
+function Signal:DisconnectAll()
 	if not self._lastConnection then
 		warn("Connections are already disconnected")
 	else
@@ -91,7 +84,7 @@ function Signal:Connect(functionToConnect: (any) -> nil): Connection
 	return connection
 end
 
-function Signal:Wait(): nil
+function Signal:Wait()
 	local thread = coroutine.running()
 
 	self:Connect(function()

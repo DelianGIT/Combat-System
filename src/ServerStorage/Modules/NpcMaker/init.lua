@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --// MODULES
 local ServerModules = ServerStorage.Modules
 local BodyMover = require(ServerModules.BodyMover)
+
 local NpcStore = require(script.NpcStore)
 local TempData = require(script.TempData)
 
@@ -46,26 +47,34 @@ local function makeHpIndicator(character: Model, humanoid: Humanoid)
 	end)
 end
 
---// MODULE FUNCTIONS
-function NpcMaker.Spawn(name: string, cframe: CFrame)
-	local data = NpcStore[name]
-	local folder = getFolder(name)
-
+local function makeCharacter(count:number, data: {}, cframe: CFrame)
 	local character = data.Character:Clone()
+	character.Name = character.Name .. "_" .. count
 	character:PivotTo(cframe)
 	BodyMover.CreateAttachment(character)
+
+	local tempData = TempData.Create(character)
 
 	local humanoid = character.Humanoid
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	makeHpIndicator(character, humanoid)
 
-	folder.Count += 1
-	name = name .. "_" .. folder.Count
-	character.Name = name
-	
-	local tempData = TempData.Create(character)
+	humanoid.Died:Connect(function()
+		task.spawn(data.KilledFunction, character, tempData)
+	end)
 
+	return character, tempData
+end
+
+--// MODULE FUNCTIONS
+function NpcMaker.Spawn(name: string, cframe: CFrame)
+	local data = NpcStore[name]
+
+	local folder = getFolder(name)
+	folder.Count += 1
+
+	local character, tempData = makeCharacter(folder.Count, data, cframe)
 	character.Parent = npcFolder
 
 	local npc = {
@@ -81,7 +90,7 @@ end
 function NpcMaker.Kill(name: string, number: number)
 	local data = NpcStore[name]
 	local folder = getFolder(name)
-	
+
 	local npc = folder[name.. "_" .. number]
 	if not npc then return end
 

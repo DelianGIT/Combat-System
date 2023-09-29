@@ -20,7 +20,7 @@ end
 
 local function prepareGui(guiPart: Part, amountLabel: TextLabel, dealtDamage: number, target: Model)
 	amountLabel.Text = "-" .. dealtDamage
-	amountLabel.Rotation = math.random(-150, 150) / 10
+	amountLabel.Rotation = math.random(-200, 200) / 10
 	amountLabel.Size = zeroSize
 	guiPart.Position = target.HumanoidRootPart.Position + getOffset()
 	guiPart.Parent = target

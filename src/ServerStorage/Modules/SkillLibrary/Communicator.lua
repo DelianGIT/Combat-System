@@ -55,9 +55,13 @@ end)
 
 return {
 	new = function(player: Player)
-		return setmetatable({
+		local communicator = setmetatable({
 			Owner = player,
 			Connections = {},
 		}, Communicator)
+		
+		communicators[player] = communicator
+
+		return communicator
 	end,
 }
