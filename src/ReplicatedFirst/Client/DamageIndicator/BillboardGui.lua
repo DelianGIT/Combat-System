@@ -30,18 +30,22 @@ local function startTweens(guiPart: Part, amountLabel: TextLabel, attacker: Play
 	amountLabel.Size = zeroSize
 
 	local tween = TweenService:Create(amountLabel, amountLabelTweenInfo1, {
-		Size = amountLabelSize
+		Size = amountLabelSize,
 	})
 
 	tween.Completed:Once(function(playbackState1: Enum.PlaybackState)
-		if playbackState1 ~= Enum.PlaybackState.Completed then return end
+		if playbackState1 ~= Enum.PlaybackState.Completed then
+			return
+		end
 
 		tween = TweenService:Create(amountLabel, amountLabelTweenInfo2, {
-			Size = zeroSize
+			Size = zeroSize,
 		})
 
 		tween.Completed:Once(function(playbackState2: Enum.PlaybackState)
-			if playbackState2 ~= Enum.PlaybackState.Completed then return end
+			if playbackState2 ~= Enum.PlaybackState.Completed then
+				return
+			end
 			guiPart:Destroy()
 			attackersPastInfo[attacker] = nil
 		end)
@@ -62,7 +66,7 @@ return function(attacker: Player | Model, target: Model, amount: number)
 	else
 		guiPart = billboardGuiPart:Clone()
 		dealtDamage = amount
-		pastInfo = {guiPart, dealtDamage}
+		pastInfo = { guiPart, dealtDamage }
 		attackersPastInfo[attacker] = pastInfo
 	end
 

@@ -15,13 +15,13 @@ local data = {
 
 --// FUNCTIONS
 local functions = {
-	Start = function(_, _, tempData)
-		BlockController.EnableBlock(tempData)
+	Start = function(player, _, tempData)
+		BlockController.EnableBlock(player, tempData)
 	end,
 
-	End = function(_, _, tempData)
-		BlockController.DisableBlock(tempData)
-	end
+	End = function(player, _, tempData)
+		BlockController.DisableBlock(player, tempData)
+	end,
 }
 
 return {

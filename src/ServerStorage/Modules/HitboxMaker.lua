@@ -15,7 +15,7 @@ type Hitbox = {
 	HitFunction: HitFunction,
 	Geometry: Geometry,
 	Type: HitboxType,
-	WhiteList: {Model},
+	WhiteList: { Model },
 	HighAccuracy: boolean,
 	Enabled: true?,
 
@@ -25,7 +25,7 @@ type Hitbox = {
 }
 
 --// CONFIG
-local VISUALIZATION = false
+local VISUALIZATION = true
 
 --// CLASSES
 local Hitbox = {}
@@ -72,11 +72,11 @@ local function connectHeartbeat()
 end
 
 --// MODULE FUNCTIONS
-function HitboxMaker.Raycast(whiteList: {Model}, origin: Vector3, direction: Vector3, hitFunction: HitFunction)
+function HitboxMaker.Raycast(whiteList: { Model }, origin: Vector3, direction: Vector3, hitFunction: HitFunction)
 	if VISUALIZATION then
 		local size = Vector3.new(0.5, 0.5, direction.Magnitude)
 		local cframe = CFrame.lookAt(origin, origin + direction)
-		
+
 		local visualization = HitboxMaker.MakeHitboxPart(cframe, size)
 		visualization.Parent = hitboxesFolder
 
@@ -97,7 +97,13 @@ function HitboxMaker.Raycast(whiteList: {Model}, origin: Vector3, direction: Vec
 	end
 end
 
-function HitboxMaker.SpatialQuery(whiteList: {Model}, cframe: CFrame, size: Vector3, highAccuracy: boolean, hitFunction: HitFunction)
+function HitboxMaker.SpatialQuery(
+	whiteList: { Model },
+	cframe: CFrame,
+	size: Vector3,
+	highAccuracy: boolean,
+	hitFunction: HitFunction
+)
 	local hits
 	if highAccuracy then
 		local part = HitboxMaker.MakeHitboxPart(cframe, size)
@@ -128,7 +134,11 @@ function HitboxMaker.SpatialQuery(whiteList: {Model}, cframe: CFrame, size: Vect
 	local hittedCharacters = {}
 	for _, hit in hits do
 		local character = hit.Parent
-		if character:FindFirstChild("Humanoid") and not table.find(hittedCharacters, character) and not table.find(whiteList, character) then
+		if
+			character:FindFirstChild("Humanoid")
+			and not table.find(hittedCharacters, character)
+			and not table.find(whiteList, character)
+		then
 			table.insert(hittedCharacters, character)
 		end
 	end
@@ -150,11 +160,17 @@ function HitboxMaker.MakeHitboxPart(cframe: CFrame, size: Vector3)
 end
 
 --// HITBOX FUNCTIONS
-function HitboxMaker.new(whiteList: {Model}, geometry: Geometry, highAccuracy: boolean, enabled: boolean, hitFunction: HitFunction): Hitbox
+function HitboxMaker.new(
+	whiteList: { Model },
+	geometry: Geometry,
+	highAccuracy: boolean,
+	enabled: boolean,
+	hitFunction: HitFunction
+): Hitbox
 	local hitbox = setmetatable({
 		HitFunction = hitFunction,
 		Geometry = geometry,
-		WhiteList = whiteList
+		WhiteList = whiteList,
 	}, Hitbox)
 
 	if geometry.CFrame and geometry.Size then
@@ -202,7 +218,13 @@ function Hitbox:GetHits()
 	if hitboxType == "Raycast" then
 		return HitboxMaker.Raycast(self.WhiteList, geometry.Origin, geometry.Direction, self.HitFunction)
 	else
-		return HitboxMaker.SpatialQuery(self.WhiteList, geometry.CFrame, geometry.Size, self.HighAccuracy, self.HitFunction)
+		return HitboxMaker.SpatialQuery(
+			self.WhiteList,
+			geometry.CFrame,
+			geometry.Size,
+			self.HighAccuracy,
+			self.HitFunction
+		)
 	end
 end
 

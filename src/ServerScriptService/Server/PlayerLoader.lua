@@ -21,7 +21,7 @@ local remoteEvent = Red.Server("LoadingControl")
 local loadedPlayers = {}
 
 --// CONFIG
-local STUDIO_MODE = true
+local STUDIO_MODE = false
 STUDIO_MODE = STUDIO_MODE and RunService:IsStudio()
 
 local AUTOSAVE_INTERVAL = 300 -- In seconds
@@ -30,7 +30,7 @@ local AUTOSAVE_INTERVAL = 300 -- In seconds
 DataLibrary.ToggleStudioMode(STUDIO_MODE)
 
 local dataStore = DataLibrary.CreateDataStore("Main", {
-	SkillPacks = { "Test" },
+	SkillPacks = { "Main" },
 })
 
 TempData.SetProfileTemplate({
@@ -38,11 +38,12 @@ TempData.SetProfileTemplate({
 	Cooldowns = {},
 	CanUseSkills = true,
 	NotLoaded = true,
-	NotLoadedCharacter = true
+	NotLoadedCharacter = true,
+	BlockMaxDurability = 10,
 })
 
 --// FUNCTIONS
-local function loadCharacter(player: Player)	
+local function loadCharacter(player: Player)
 	local tempData = TempData.Get(player)
 	if tempData.NotLoadedCharacter then
 		tempData.NotLoadedCharacter = nil
@@ -89,13 +90,12 @@ end
 
 local function sendDataToClient(player: Player)
 	if not loadedPlayers[player] then
-		repeat
-		until loadedPlayers[player]
+		repeat task.wait() until loadedPlayers[player]
 		loadedPlayers[player] = nil
 	end
 
 	local savedData = dataStore:GetData(player)
-	
+
 	local keybindsInfo = {}
 	for _, packName in savedData.Data.SkillPacks do
 		keybindsInfo[packName] = SkillLibrary.GetSkillsKeybindsInfo(packName)
@@ -107,6 +107,20 @@ end
 
 local function playerRemoving(player: Player)
 	print("Player " .. player.Name .. " removing")
+
+	task.spawn(function()
+		local tempData = TempData.Get(player)
+		local skillPacks = tempData.SkillPacks
+		local activeSkill = tempData.ActiveSkill
+		if activeSkill then
+			local pack = skillPacks[activeSkill.PackName]
+			pack:InterruptSkill(activeSkill.SkillName, true)
+		end
+
+		for _, pack in tempData.SkillPacks do
+			pack.Communicator:Destroy()
+		end
+	end)
 
 	savePlayerData(player)
 	TempData.Delete(player)

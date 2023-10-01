@@ -11,7 +11,7 @@ local VFX_FOLDER = ReplicatedStorage.Vfx
 for _, folder in VFX_FOLDER:GetChildren() do
 	local pack = {}
 
-	for _, module in pack do
+	for _, module in folder:GetChildren() do
 		local success, result = pcall(require, module)
 		if success then
 			pack[module.Name] = result

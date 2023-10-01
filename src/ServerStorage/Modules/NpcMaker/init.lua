@@ -20,13 +20,14 @@ local NpcMaker = {}
 --// SETTING TEMP DATA PROFILE TEMPLATE
 TempData.SetProfileTemplate({
 	SkillPacks = {},
-	CanUseSkills = true
+	CanUseSkills = true,
+	BlockMaxDurability = 100,
 })
 
 --// FUNCTIONS
 local function getFolder(name: string)
 	local folder = spawnedNpc[name] or {
-		Count = 0
+		Count = 0,
 	}
 	spawnedNpc[name] = folder
 	return folder
@@ -47,7 +48,7 @@ local function makeHpIndicator(character: Model, humanoid: Humanoid)
 	end)
 end
 
-local function makeCharacter(count:number, data: {}, cframe: CFrame)
+local function makeCharacter(count: number, data: {}, cframe: CFrame)
 	local character = data.Character:Clone()
 	character.Name = character.Name .. "_" .. count
 	character:PivotTo(cframe)
@@ -80,7 +81,7 @@ function NpcMaker.Spawn(name: string, cframe: CFrame)
 	local npc = {
 		Name = name,
 		Character = character,
-		TempData = tempData
+		TempData = tempData,
 	}
 	folder[name] = npc
 
@@ -91,8 +92,10 @@ function NpcMaker.Kill(name: string, number: number)
 	local data = NpcStore[name]
 	local folder = getFolder(name)
 
-	local npc = folder[name.. "_" .. number]
-	if not npc then return end
+	local npc = folder[name .. "_" .. number]
+	if not npc then
+		return
+	end
 
 	task.spawn(data.KilledFunction, npc.Character, npc.TempData)
 end

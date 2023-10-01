@@ -94,8 +94,8 @@ return {
 		local dataStore = setmetatable({
 			Name = name,
 			_profileStore = ProfileStore.new(profileTemplate),
-			_globalDataStore = if studioMode then DataStoreService:GetDataStore(name) else nil,
-			_sessionLocker = if studioMode then SessionLocker.new(name) else nil,
+			_globalDataStore = if not studioMode then DataStoreService:GetDataStore(name) else nil,
+			_sessionLocker = if not studioMode then SessionLocker.new(name) else nil,
 			_playerLocker = PlayerLocker.new(),
 		}, DataStore)
 

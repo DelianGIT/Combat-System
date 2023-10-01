@@ -1,9 +1,9 @@
 --// TYPES
 export type CooldownStore = {
-	Add: (action: string, duration: number) -> (),
-	Start: (action: string) -> (),
-	Remove: (action: string) -> (),
-	IsOnCooldown: (action: string) -> (),
+	Add: (self: CooldownStore, action: string, duration: number) -> (),
+	Start: (self: CooldownStore, action: string) -> (),
+	Remove: (self: CooldownStore, action: string) -> (),
+	IsOnCooldown: (self: CooldownStore, action: string) -> (),
 }
 
 --// CLASSES

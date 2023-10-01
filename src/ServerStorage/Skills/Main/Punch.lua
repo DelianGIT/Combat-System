@@ -12,7 +12,7 @@ local data = {
 	Cooldown = 0.5,
 	InputKey = Enum.UserInputType.MouseButton1,
 	InputState = "Begin",
-	Damage = 5
+	Damage = 5,
 }
 
 --// FUNCTIONS
@@ -22,12 +22,14 @@ local functions = {
 		local characterCFrame = humanoidRootPart.CFrame
 
 		local cframe = characterCFrame + characterCFrame.LookVector * 3
-		local hits = HitboxMaker.SpatialQuery({character}, cframe, Vector3.new(5, 5, 5))
+		local hits = HitboxMaker.SpatialQuery({ character }, cframe, Vector3.new(5, 5, 5))
 
 		for _, hittedCharacter in hits do
-			Damager.Deal(player, character, hittedCharacter, tempData, skillData.Damage)
+			Damager.Deal(player, character, tempData, hittedCharacter, skillData.Damage, {
+				"Main", "PunchHit"
+			})
 		end
-	end
+	end,
 }
 
 return {

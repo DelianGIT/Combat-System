@@ -15,7 +15,8 @@ local VfxController = {}
 local RENDER_DISTANCE = 1024
 
 --MODULE FUNCTIONS
-function VfxController.Start(origin: Vector3, packName: string, vfxName: string, character: Model, ...: any)
+function VfxController.Start(packName: string, vfxName: string, character: Model, ...: any)
+	local origin = character.HumanoidRootPart.Position
 	for _, player in Players:GetPlayers() do
 		if player:DistanceFromCharacter(origin) <= RENDER_DISTANCE then
 			remoteEvent:Fire(player, "Start", packName, vfxName, character, ...)

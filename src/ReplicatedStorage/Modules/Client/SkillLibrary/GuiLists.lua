@@ -62,14 +62,20 @@ local function startCircularProgressBar(leftGradient: UIGradient, rightGradient:
 
 	tweenColorSequence(leftGradient, rightGradient, duration)
 
-	local rightTween = TweenService:Create(rightGradient, TweenInfo.new(halfDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
-		Rotation = 0
-	})
+	local rightTween = TweenService:Create(
+		rightGradient,
+		TweenInfo.new(halfDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.In),
+		{
+			Rotation = 0,
+		}
+	)
 
 	rightTween.Completed:Once(function()
-		TweenService:Create(leftGradient, TweenInfo.new(halfDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
-			Rotation = 180
-		}):Play()
+		TweenService
+			:Create(leftGradient, TweenInfo.new(halfDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+				Rotation = 180,
+			})
+			:Play()
 	end)
 
 	rightTween:Play()
@@ -78,9 +84,10 @@ end
 local function startActivationTween(uiGradient)
 	if activeSkill then
 		uiGradient.Offset = startVector2
-		local tween = TweenService:Create(uiGradient, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
-			Offset = endVector2
-		})
+		local tween =
+			TweenService:Create(uiGradient, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+				Offset = endVector2,
+			})
 
 		tween.Completed:Once(function()
 			startActivationTween(uiGradient)
@@ -167,13 +174,13 @@ end
 
 function GuiLists.Pressed(uiStroke: UIStroke)
 	TweenService:Create(uiStroke, pressedTweenInfo, {
-		Thickness = 3
+		Thickness = 3,
 	}):Play()
 end
 
 function GuiLists.Unpressed(uiStroke: UIStroke)
 	TweenService:Create(uiStroke, unpressedTweenInfo, {
-		Thickness = 0
+		Thickness = 0,
 	}):Play()
 end
 
@@ -183,9 +190,9 @@ function GuiLists.Started(skillFrame: Frame)
 	activeSkill = skillFrame
 
 	TweenService:Create(gradient.Parent, activationTweenInfo, {
-		Thickness = 3
+		Thickness = 3,
 	}):Play()
-	
+
 	startActivationTween(gradient)
 end
 
@@ -193,7 +200,7 @@ function GuiLists.Ended()
 	activeSkill = nil
 
 	TweenService:Create(activeSkillGradient.Parent, activationTweenInfo, {
-		Thickness = 0
+		Thickness = 0,
 	}):Play()
 
 	activeSkillGradient = nil

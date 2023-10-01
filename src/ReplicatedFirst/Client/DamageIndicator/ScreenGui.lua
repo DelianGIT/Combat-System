@@ -32,19 +32,19 @@ local guiActive = false
 --// FUNCTIONS
 local function tweenTransparency(value: number)
 	TweenService:Create(damageLabel, transparencyTweenInfo, {
-		TextTransparency = value
+		TextTransparency = value,
 	}):Play()
 	TweenService:Create(damageStroke, transparencyTweenInfo, {
-		Transparency = value
+		Transparency = value,
 	}):Play()
 	TweenService:Create(hitsLabel, transparencyTweenInfo, {
-		TextTransparency = value
+		TextTransparency = value,
 	}):Play()
 	TweenService:Create(hitsStroke, transparencyTweenInfo, {
-		Transparency = value
+		Transparency = value,
 	}):Play()
 	TweenService:Create(timerFrame, transparencyTweenInfo, {
-		BackgroundTransparency = value
+		BackgroundTransparency = value,
 	}):Play()
 end
 
@@ -60,7 +60,7 @@ local function startTimer()
 	timerFrame.Size = startTimerSize
 
 	local timerTween = TweenService:Create(timerFrame, timerTweenInfo, {
-		Size = endTimerSize
+		Size = endTimerSize,
 	})
 
 	timerTween.Completed:Once(function(playbackState: Enum.PlaybackState)
@@ -78,7 +78,7 @@ end
 local function changeSize()
 	mainFrame.Size = startMainFrameSize
 	TweenService:Create(mainFrame, mainFrameTweenInfo, {
-		Size = endMainFrameSize
+		Size = endMainFrameSize,
 	}):Play()
 end
 

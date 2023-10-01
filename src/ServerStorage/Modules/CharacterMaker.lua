@@ -16,6 +16,25 @@ local hpIndicator = ReplicatedStorage.Gui.HpIndicator
 local CharacterMaker = {}
 
 --// FUNCTIONS
+local function checkActiveSkill(tempData: {})
+	local activeSkill = tempData.ActiveSkill
+	if activeSkill then
+		local packName = activeSkill.PackName
+		local skillName = activeSkill.SkillName
+		task.spawn(function()
+			tempData.SkillPacks[packName]:InterruptSkill(skillName, true)
+		end)
+	end
+end
+
+local function moveCharacterToFolder(character: Model)
+	RunService.Heartbeat:Once(function()
+		character.Archivable = true
+		character.Parent = charactersFolder
+		character.Archivable = false
+	end)
+end
+
 local function makeHpIndicator(player: Player, character: Model, humanoid: Humanoid)
 	local indicator = hpIndicator:Clone()
 	indicator.PlayerToHideFrom = player
@@ -32,20 +51,22 @@ local function makeHpIndicator(player: Player, character: Model, humanoid: Human
 	end)
 end
 
-local function checkActiveSkill(tempData: {})
-	local activeSkill = tempData.ActiveSkill
-	if activeSkill then
-		local packName = activeSkill.PackName
-		local skillName = activeSkill.SkillName
-		task.spawn(function()
-			tempData.SkillPacks[packName]:QuickInterrupt(skillName)
-		end)
-	end
+local function prepareHumanoid(player: Player, tempData: {}, character: Model)
+	local humanoid = character.Humanoid
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.Died:Connect(function()
+		checkActiveSkill(tempData)
+		CharacterMaker.Make(player, tempData)
+	end)
+	makeHpIndicator(player, character, humanoid)
 end
 
 --// MODULE FUNCTIONS
 function CharacterMaker.Make(player: Player, tempData: {})
-	if not player.Parent == Players then return end
+	if player.Parent ~= Players then
+		return
+	end
 
 	local existingCharacter = player.Character
 	if existingCharacter then
@@ -53,21 +74,8 @@ function CharacterMaker.Make(player: Player, tempData: {})
 	end
 
 	player.CharacterAdded:Once(function(newCharacter: Model)
-		RunService.Heartbeat:Once(function()
-			newCharacter.Archivable = true
-			newCharacter.Parent = charactersFolder
-			newCharacter.Archivable = false
-		end)
-
-		local humanoid = newCharacter.Humanoid
-		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
-		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		humanoid.Died:Connect(function()
-			checkActiveSkill(tempData)
-			CharacterMaker.Make(player, tempData)
-		end)
-		makeHpIndicator(player, newCharacter, humanoid)
-
+		moveCharacterToFolder(newCharacter)
+		prepareHumanoid(player, tempData, newCharacter)
 		BodyMover.CreateAttachment(newCharacter)
 	end)
 

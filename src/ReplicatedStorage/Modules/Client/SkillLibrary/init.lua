@@ -1,6 +1,6 @@
 --// SERVICES
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 --// MODULES
 local Modules = ReplicatedStorage.Modules
@@ -20,30 +20,23 @@ local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 local Trove = require(Packages.Trove)
 
---// TYPES
-type KeybindsInfo = {
-	HasEnd: boolean,
-	Key: Enum.KeyCode | Enum.UserInputType,
-	State: "Begin" | "End" | "DoubleClick" | "Hold",
-	ExternalArg: number?,
-}
-
 --// VARIABLES
 local player = Players.LocalPlayer
 
-local remoteEvent = Red.Client("SkillControl")
-
 local skillPackItems = ReplicatedStorage.Items.SkillPacks
+
+local remoteEvent = Red.Client("SkillControl")
 
 local skillPacks = {}
 local SkillLibrary = {}
-
-local activeSkill, trove
 
 local requestedStart = false
 local requestedEnd = false
 local waitingForEnd = false
 local ending = false
+local readyForEnd = false
+
+local activeSkill, trove
 
 --// FUNCTIONS
 local function getSkillFunction(functionName: string, skillName: string, skillPack: {})
@@ -59,24 +52,26 @@ local function startCooldown(packName: string, skillName: string)
 end
 
 local function ended()
-	if not waitingForEnd then
-		repeat task.wait() until waitingForEnd
+	if not readyForEnd then
+		repeat
+			task.wait()
+		until readyForEnd
 	end
+	readyForEnd = false
 
 	GuiLists.Ended()
-
-	local packName, skillName = table.unpack(activeSkill)
-	startCooldown(packName, skillName)
-
 	Communicator.DisconnectAll()
+	startCooldown(table.unpack(activeSkill))
+
 	trove = nil
 	activeSkill = nil
-	waitingForEnd = false
 	ending = false
 end
 
 local function interrupt()
-	if not activeSkill then return end
+	if not activeSkill then
+		return
+	end
 
 	GuiLists.Ended()
 
@@ -88,7 +83,7 @@ local function interrupt()
 	if interruptFunction then
 		local success, err = pcall(interruptFunction, Communicator, trove)
 		if not success then
-			warn("Interrupt of skill " .. skillName .. " of skill pack " .. packName .. " threw an error: " .. err)
+			warn("Interrupt of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
 			trove:Clean()
 		end
 	else
@@ -96,19 +91,29 @@ local function interrupt()
 	end
 
 	Communicator.DisconnectAll()
+	
 	trove = nil
 	activeSkill = nil
 	requestedEnd = false
+	readyForEnd = false
 	waitingForEnd = false
 	ending = false
 end
 
 --// REQUESTERS
 local function requestStart(packName: string, skillName: string)
-	if requestedStart or activeSkill then return end
+	if requestedStart or activeSkill then
+		return
+	end
 
 	local pack = skillPacks[packName]
-	if not pack or not pack.Keybinds[skillName] then return end
+	if not pack then
+		return
+	end
+	local keybinds = pack.Keybinds[skillName]
+	if not keybinds then
+		return
+	end
 
 	if pack.CooldownStore:IsOnCooldown(skillName) then
 		return
@@ -118,10 +123,12 @@ local function requestStart(packName: string, skillName: string)
 	local result
 	if prestartFunction then
 		result = prestartFunction()
-		if result == "Cancel" then return end
+		if result == "Cancel" then
+			return
+		end
 	end
 
-	requestedStart = {packName, skillName}
+	requestedStart = { packName, skillName, keybinds[3] }
 	if result then
 		remoteEvent:Fire("Start", packName, skillName, result)
 	else
@@ -130,18 +137,31 @@ local function requestStart(packName: string, skillName: string)
 end
 
 local function requestEnd(packName: string, skillName: string)
-	if requestedEnd or ending then return end
+	if requestedEnd or ending then
+		return
+	end
 
 	if not activeSkill or activeSkill[1] ~= packName or activeSkill[2] ~= skillName then
 		return
 	end
 
 	local pack = skillPacks[packName]
+	if not pack then
+		return
+	end
 	local keybinds = pack.Keybinds[skillName]
-	if not pack or not keybinds or not keybinds[3] then return end
+	if not keybinds or not keybinds[3] then
+		return
+	end
 
 	if not waitingForEnd then
-		repeat task.wait() until waitingForEnd
+		repeat
+			if not activeSkill then
+				return
+			else
+				task.wait()
+			end
+		until waitingForEnd
 	end
 
 	requestedEnd = true
@@ -156,36 +176,42 @@ local function startConfirmed()
 	requestedStart = false
 
 	local pack = skillPacks[packName]
-
 	local skillFrame = pack.GuiList[skillName]
 	GuiLists.Started(skillFrame)
 
 	trove = Trove.new()
-
 	local startFunction = getSkillFunction("Start", skillName, pack)
 	if startFunction then
 		local success, err = pcall(startFunction, Communicator, trove)
 		if not success then
-			warn("Start of " .. skillName .. "_" .. packName .. " threw an error: " .. err)
+			warn("Start of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
 		end
 	end
 
-	waitingForEnd = true
+	if activeSkill[3] then
+		waitingForEnd = true
+	else
+		readyForEnd = true
+	end
 end
 
 local function endConfirmed()
 	requestedEnd = false
+	waitingForEnd = false
 	ending = true
 
 	local packName, skillName = table.unpack(activeSkill)
 
 	local pack = skillPacks[packName]
 	local endFunction = getSkillFunction("End", skillName, pack)
-
-	local success, err = pcall(endFunction, Communicator, trove)
-	if not success then
-		warn("End of " .. skillName .. "_" .. packName .. " threw an error: " .. err)
+	if endFunction then
+		local success, err = pcall(endFunction, Communicator, trove)
+		if not success then
+			warn("End of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
+		end
 	end
+	
+	readyForEnd = true
 end
 
 local function startDidntConfirm()
@@ -233,7 +259,7 @@ local function giveSkillPackItem(backpack: Backpack, packName: string, guiList: 
 end
 
 --// MODULE FUNCTIONS
-function SkillLibrary.AddSkillPack(packName: string, keybindsInfo: KeybindsInfo)
+function SkillLibrary.AddSkillPack(packName: string, keybindsInfo: {})
 	if skillPacks[packName] then
 		error("Player already has skill pack " .. packName)
 	end
@@ -279,14 +305,14 @@ function SkillLibrary.AddSkillPack(packName: string, keybindsInfo: KeybindsInfo)
 		Keybinds = keybinds,
 		CooldownStore = cooldownStore,
 		GuiList = guiList,
-		Skills = SkillStore[packName]
+		Skills = SkillStore[packName],
 	}
 end
 
 function SkillLibrary.RemoveSkillPack(packName: string)
 	local pack = skillPacks[packName]
 	if pack then
-		error("Player already doesn't have skill pack " .. packName)
+		error("Player doesn't have skill pack " .. packName)
 	end
 
 	for _, keybind in pack.Keybinds do
@@ -294,6 +320,8 @@ function SkillLibrary.RemoveSkillPack(packName: string)
 	end
 
 	GuiLists.Destroy(pack.GuiList)
+
+	skillPacks[packName] = nil
 end
 
 --// EVENTS

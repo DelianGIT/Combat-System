@@ -9,7 +9,7 @@ local charactersFolder = ReplicatedStorage.Npc
 local npc = {}
 
 --// CREATING NPCS
-for _, module in  modulesFolder:GetDescendants() do
+for _, module in modulesFolder:GetDescendants() do
 	if module:IsA("ModuleScript") then
 		local spawnedFunction, killedFunction = table.unpack(require(module))
 		local character = charactersFolder[module.Name]
@@ -17,7 +17,7 @@ for _, module in  modulesFolder:GetDescendants() do
 		npc[module.Name] = {
 			SpawnedFunction = spawnedFunction,
 			KilledFunction = killedFunction,
-			Character = character
+			Character = character,
 		}
 	end
 end

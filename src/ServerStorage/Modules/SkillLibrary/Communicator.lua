@@ -5,8 +5,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
+--// TYPES
+type FunctionToConnect = (any) -> ()
+export type Communicator = {
+	Owner: Player,
+	Connections: {[string]: FunctionToConnect},
+
+	Fire:(self: Communicator, action: string, any) -> (),
+	Connect:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
+	Once:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
+	Disconnect:(self: Communicator, action: string) -> (),
+	DisconnectAll:(self: Communicator) -> (),
+}
+
 --// CLASSES
-local Communicator = {}
+local Communicator: Communicator = {}
 Communicator.__index = Communicator
 
 --// VARIABLES
@@ -19,11 +32,11 @@ function Communicator:Fire(action: string, ...: any)
 	remoteEvent:Fire(self.Owner, "", action, ...)
 end
 
-function Communicator:Connect(action: string, functionToConnect: (any) -> nil)
+function Communicator:Connect(action: string, functionToConnect: FunctionToConnect)
 	self.Connections[action] = functionToConnect
 end
 
-function Communicator:Once(action: string, functionToConnect: (any) -> nil)
+function Communicator:Once(action: string, functionToConnect: FunctionToConnect)
 	self:Connect(action, function(...: any)
 		self:Disconnect(action)
 		functionToConnect(...)
@@ -38,11 +51,15 @@ function Communicator:DisconnectAll()
 	self.Connections = {}
 end
 
+function Communicator:Destroy()
+	communicators[self.Owner] = nil
+end
+
 --// EVENTS
 remoteEvent:On("", function(player: Player, action: string, ...: any)
 	local communicator = communicators[player]
 	if not communicator then
-		error("Not found " .. player.Name .. "'s skill communicator")
+		error("Not found " .. player.Name .. "'s communicator")
 	end
 
 	local connection = communicator.Connections[action]
@@ -54,12 +71,12 @@ remoteEvent:On("", function(player: Player, action: string, ...: any)
 end)
 
 return {
-	new = function(player: Player)
+	new = function(player: Player): Communicator
 		local communicator = setmetatable({
 			Owner = player,
 			Connections = {},
 		}, Communicator)
-		
+
 		communicators[player] = communicator
 
 		return communicator
