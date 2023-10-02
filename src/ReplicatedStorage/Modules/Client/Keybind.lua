@@ -103,12 +103,11 @@ end
 local function processDoubleClick(key: Key)
 	for _, keybind: Keybind in doubleClickKeybinds do
 		if key == keybind.Key then
-			if keybind.LastClickTime == 0 then
-				keybind.LastClickTime = tick()
-			elseif tick() - keybind.LastClickTime <= keybind.ClickFrame then
-				keybind.LastClickTime = 0
+			if tick() - keybind.LastClickTime <= keybind.ClickFrame then
+				keybind.LastClickTime = false
 				task.spawn(keybind.Function)
 			end
+			keybind.LastClickTime = tick()
 		end
 	end
 end

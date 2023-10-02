@@ -39,8 +39,8 @@ local readyForEnd = false
 local activeSkill, trove
 
 --// FUNCTIONS
-local function getSkillFunction(functionName: string, skillName: string, skillPack: {})
-	local skills = skillPack.Skills
+local function getSkillFunction(functionName: string, packName: string, skillName: string)
+	local skills = SkillStore[packName]
 	local skill = if skills then skills[skillName] else nil
 	return if skill then skill[functionName] else nil
 end
@@ -69,6 +69,12 @@ local function ended()
 end
 
 local function interrupt()
+	if requestedStart then
+		repeat
+			task.wait()
+		until not requestedStart
+	end
+
 	if not activeSkill then
 		return
 	end
@@ -78,10 +84,9 @@ local function interrupt()
 	local packName, skillName = table.unpack(activeSkill)
 	startCooldown(packName, skillName)
 
-	local pack = skillPacks[packName]
-	local interruptFunction = getSkillFunction("Interrupt", skillName, pack)
+	local interruptFunction = getSkillFunction("Interrupt", packName, skillName)
 	if interruptFunction then
-		local success, err = pcall(interruptFunction, Communicator, trove)
+		local success, err = pcall(interruptFunction, player, Communicator, trove)
 		if not success then
 			warn("Interrupt of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
 			trove:Clean()
@@ -119,7 +124,7 @@ local function requestStart(packName: string, skillName: string)
 		return
 	end
 
-	local prestartFunction = getSkillFunction("Prestart", skillName, pack)
+	local prestartFunction = getSkillFunction("Prestart", packName, skillName)
 	local result
 	if prestartFunction then
 		result = prestartFunction()
@@ -180,9 +185,9 @@ local function startConfirmed()
 	GuiLists.Started(skillFrame)
 
 	trove = Trove.new()
-	local startFunction = getSkillFunction("Start", skillName, pack)
+	local startFunction = getSkillFunction("Start", packName, skillName)
 	if startFunction then
-		local success, err = pcall(startFunction, Communicator, trove)
+		local success, err = pcall(startFunction, player, Communicator, trove)
 		if not success then
 			warn("Start of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
 		end
@@ -202,10 +207,9 @@ local function endConfirmed()
 
 	local packName, skillName = table.unpack(activeSkill)
 
-	local pack = skillPacks[packName]
-	local endFunction = getSkillFunction("End", skillName, pack)
+	local endFunction = getSkillFunction("End", packName, skillName)
 	if endFunction then
-		local success, err = pcall(endFunction, Communicator, trove)
+		local success, err = pcall(endFunction, player, Communicator, trove)
 		if not success then
 			warn("End of " .. packName .. "_" .. skillName .. " threw an error: " .. err)
 		end
@@ -274,10 +278,18 @@ function SkillLibrary.AddSkillPack(packName: string, keybindsInfo: {})
 		local skillFrame = GuiLists.AddSkill(guiList, skillName, key)
 		local uiStroke = skillFrame.Keybind.UIStroke
 
-		local beginKeybind = Keybind[state](skillName, key, externalArg or function()
-			requestStart(packName, skillName)
-			GuiLists.Pressed(uiStroke)
-		end, externalArg)
+		local beginKeybind
+		if externalArg then
+			beginKeybind = Keybind[state](skillName, key, externalArg, function()
+				requestStart(packName, skillName)
+				GuiLists.Pressed(uiStroke)
+			end)
+		else
+			beginKeybind = Keybind[state](skillName, key, function()
+				requestStart(packName, skillName)
+				GuiLists.Pressed(uiStroke)
+			end)
+		end
 		beginKeybind:Disable()
 
 		local endKeybind

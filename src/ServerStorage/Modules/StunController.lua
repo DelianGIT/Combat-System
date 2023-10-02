@@ -27,7 +27,8 @@ function StunController.Apply(character: Model, tempData: {}, duration: number?)
 	JumpPowerController.Change(character, tempData, 0, 5, duration)
 
 	if VISUALIZATION then
-		character.StunVisualization.OutlineColor = Color3.new(1, 0, 0)
+		local indicator = character.HumanoidRootPart.StunIndicator
+		indicator.Enabled = true
 	end
 
 	if not duration then return end
@@ -48,7 +49,8 @@ function StunController.Cancel(character: Model, tempData: {})
 		JumpPowerController.Cancel(character, tempData)
 
 		if VISUALIZATION then
-			character.StunVisualization.OutlineColor = Color3.new(0, 1, 0)
+			local indicator = character.HumanoidRootPart.StunIndicator
+			indicator.Enabled = false
 		end
 	end
 end
@@ -57,15 +59,11 @@ end
 if VISUALIZATION then
 	local livingFolder = workspace.Living
 
-	local highlight = Instance.new("Highlight")
-	highlight.Name = "StunVisualization"
-	highlight.FillTransparency = 1
-	highlight.OutlineColor = Color3.new(0, 1, 0)
-	highlight.OutlineTransparency = 0
-	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	local stunIndicator = ServerStorage.Assets.Gui.StunIndicator
 
 	local function addVisualization(character: Model)
-		highlight:Clone().Parent = character
+		local indicator = stunIndicator:Clone()
+		indicator.Parent = character.HumanoidRootPart
 	end
 
 	livingFolder.Players.ChildAdded:Connect(addVisualization)

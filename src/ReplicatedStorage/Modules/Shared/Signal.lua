@@ -56,8 +56,8 @@ end
 function Signal:Fire(...: any)
 	local connection = self._lastConnection
 	while connection do
-		connection = connection._previousConnection
 		task.spawn(connection._connectedFunction, ...)
+		connection = connection._previousConnection
 	end
 end
 

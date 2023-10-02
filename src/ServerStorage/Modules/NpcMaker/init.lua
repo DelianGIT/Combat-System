@@ -1,6 +1,5 @@
 --// SERVICES
 local ServerStorage = game:GetService("ServerStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
@@ -12,7 +11,7 @@ local TempData = require(script.TempData)
 --// VARIABLES
 local npcFolder = workspace.Living.Npc
 
-local hpIndicator = ReplicatedStorage.Gui.HpIndicator
+local hpIndicator = ServerStorage.Assets.Gui.HpIndicator
 
 local spawnedNpc = {}
 local NpcMaker = {}
@@ -33,39 +32,73 @@ local function getFolder(name: string)
 	return folder
 end
 
+local function isTableEmpty(table: {})
+	for _, _ in table do
+		return false
+	end
+	return true
+end
+
+local function makeCharacter(name: string, count: number, data: {}, cframe: CFrame)
+	local character = data.Character:Clone()
+	character.Name = name .. "_" .. count
+	character:PivotTo(cframe)
+
+	BodyMover.CreateAttachment(character)
+
+	return character
+end
+
+local function stopActiveSkill(tempData: {})
+	local activeSkill = tempData.ActiveSkill
+	if activeSkill then
+		local packName = activeSkill.PackName
+		local skillName = activeSkill.SkillName
+		tempData.SkillPacks[packName]:InterruptSkill(skillName, true)
+	end
+end
+
 local function makeHpIndicator(character: Model, humanoid: Humanoid)
 	local indicator = hpIndicator:Clone()
-	indicator.Parent = character.Head
+	indicator.Parent = character.HumanoidRootPart
 
 	local amountLabel = indicator.Amount
 	humanoid.HealthChanged:Connect(function(health: number)
-		local amount = math.floor(health / humanoid.MaxHealth * 100)
-		amountLabel.Text = amount .. "%"
+		local maxHealth = humanoid.MaxHealth
+
+		if health == maxHealth then
+			amountLabel.Text = "∞%"
+		else
+			local amount = math.floor(health / humanoid.MaxHealth * 100)
+			amountLabel.Text = amount .. "%"
+		end
 	end)
 	humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
-		local amount = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
-		amountLabel.Text = amount .. "%"
+		local health = humanoid.Health
+		local maxHealth = humanoid.MaxHealth
+
+		if health == maxHealth then
+			amountLabel.Text = "∞%"
+		else
+			local amount = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
+			amountLabel.Text = amount .. "%"
+		end
 	end)
 end
 
-local function makeCharacter(count: number, data: {}, cframe: CFrame)
-	local character = data.Character:Clone()
-	character.Name = character.Name .. "_" .. count
-	character:PivotTo(cframe)
-	BodyMover.CreateAttachment(character)
-
-	local tempData = TempData.Create(character)
-
+local function prepairHumanoid(character: Model, npc: {}, tempData: {}, killedFunction: () -> ())
 	local humanoid = character.Humanoid
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	makeHpIndicator(character, humanoid)
 
 	humanoid.Died:Connect(function()
-		task.spawn(data.KilledFunction, character, tempData)
-	end)
+		stopActiveSkill(tempData)
 
-	return character, tempData
+		if killedFunction then
+			task.spawn(killedFunction, npc, character, tempData)
+		end
+	end)
 end
 
 --// MODULE FUNCTIONS
@@ -75,17 +108,25 @@ function NpcMaker.Spawn(name: string, cframe: CFrame)
 	local folder = getFolder(name)
 	folder.Count += 1
 
-	local character, tempData = makeCharacter(folder.Count, data, cframe)
-	character.Parent = npcFolder
-
+	local character = makeCharacter(name, folder.Count, data, cframe)
+	local tempData = TempData.Create(character)
 	local npc = {
 		Name = name,
 		Character = character,
 		TempData = tempData,
 	}
+
+	prepairHumanoid(character, npc, tempData, data.KilledFunction)
+	character.Parent = npcFolder
+
 	folder[name] = npc
 
-	task.spawn(data.SpawnedFunction, npc, character, tempData)
+	local spawnedFunction = data.SpawnedFunction
+	if spawnedFunction then
+		task.spawn(data.SpawnedFunction, npc, character, tempData)
+	end
+
+	return npc
 end
 
 function NpcMaker.Kill(name: string, number: number)
@@ -97,7 +138,15 @@ function NpcMaker.Kill(name: string, number: number)
 		return
 	end
 
-	task.spawn(data.KilledFunction, npc.Character, npc.TempData)
+	local killedFunction = data.KilledFunction
+	if killedFunction then
+		task.spawn(data.killedFunction, npc, npc.Character, npc.TempData)
+	end
+
+	folder[name] = nil
+	if isTableEmpty(folder) then
+		spawnedNpc[name] = nil
+	end
 end
 
 return NpcMaker

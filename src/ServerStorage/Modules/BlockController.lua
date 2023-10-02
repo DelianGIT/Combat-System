@@ -26,7 +26,7 @@ function BlockController.EnableBlock(player: Player?, tempData: {})
 	tempData.BlockTime = tick()
 	tempData.IsBlocking = true
 
-	if player then
+	if typeof(player) == "Instance" then
 		remoteEvent:Fire(player, "Enable", maxDurability)
 	end
 end
@@ -34,7 +34,7 @@ end
 function BlockController.DisableBlock(player: Player?, tempData: {})
 	tempData.IsBlocking = false
 
-	if player then
+	if typeof(player) == "Instance" then
 		remoteEvent:Fire(player, "Disable")
 	end
 end
@@ -42,7 +42,7 @@ end
 function BlockController.IncreaseDurability(player: Player?, tempData: {}, value: number)
 	tempData.BlockDurability += value
 
-	if player then
+	if typeof(player) == "Instance" then
 		remoteEvent:Fire(player, "ChangeDurability", value)
 	end
 end
@@ -53,7 +53,7 @@ function BlockController.DecreaseDurability(player: Player?, tempData: {}, value
 	else
 		tempData.BlockDurability -= value
 
-		if player then
+		if typeof(player) == "Instance" then
 			remoteEvent:Fire(player, "ChangeDurability", -value)
 		end
 	end
@@ -79,31 +79,45 @@ function BlockController.PerfectBlock(
 	blockerPlayer: Player?,
 	blockerCharacter: Model,
 	attackerCharacter: Model,
-	attackerTempData: {}
+	attackerTempData: {},
+	customVfx: boolean
 )
 	StunController.Apply(attackerCharacter, attackerTempData, 3)
 
-	if blockerPlayer then
+	if typeof(blockerPlayer) == "Instance" then
 		remoteEvent:Fire(blockerPlayer, "PerfectBlock")
 	end
 
-	VfxController.Start("Main", "PerfectBlock", blockerCharacter)
+	if customVfx then
+		VfxController.Start(customVfx[1], customVfx[2], blockerCharacter)
+	else
+		VfxController.Start("Main", "PerfectBlock", blockerCharacter)
+	end
 end
 
-function BlockController.BreakBlock(player: Player?, character: Model, tempData: {})
+function BlockController.BreakBlock(player: Player?, character: Model, tempData: {}, customVfx: boolean)
 	tempData.IsBlocking = false
 	StunController.Apply(character, tempData, 3)
 
-	if player then
+	if typeof(player) == "Instance" then
 		remoteEvent:Fire(player, "BlockBreak")
 	end
 
-	VfxController.Start("Main", "BlockBreak", character)
+	if customVfx then
+		VfxController.Start(customVfx[1], customVfx[2], character)
+	else
+		VfxController.Start("Main", "BlockBreak", character)
+	end
 end
 
-function BlockController.HitBlock(player: Player?, character: Model, tempData: {}, damageAmount: number)
+function BlockController.HitBlock(player: Player?, character: Model, tempData: {}, damageAmount: number, customVfx: boolean)
 	BlockController.DecreaseDurability(player, tempData, damageAmount)
-	VfxController.Start("Main", "BlockHit", character)
+
+	if customVfx then
+		VfxController.Start(customVfx[1], customVfx[2], character)
+	else
+		VfxController.Start("Main", "BlockHit", character)
+	end
 end
 
 function BlockController.ProcessBlock(
@@ -112,18 +126,21 @@ function BlockController.ProcessBlock(
 	targetPlayer: Player?,
 	targetCharacter: Model,
 	targetTempData: {},
-	amount: number
+	damageConfig: {}
 )
 	if not targetTempData.IsBlocking then
 		return
 	end
 
-	if BlockController.IsPerfectBlocked(targetTempData) then
-		BlockController.PerfectBlock(targetPlayer, targetCharacter, attackerCharacter, attackerTempData)
-	elseif BlockController.IsBrokeBlock(targetTempData, amount) then
-		BlockController.BreakBlock(targetPlayer, targetCharacter, targetTempData)
+	if damageConfig.PerfectBlockable and BlockController.IsPerfectBlocked(targetTempData) then
+		BlockController.PerfectBlock(targetPlayer, targetCharacter, attackerCharacter, attackerTempData, damageConfig.CustomPerfectBlockVfx)
+		return "PerfectBlock"
+	elseif damageConfig.BlockBreaking or BlockController.IsBrokeBlock(targetTempData, damageConfig.Amount) then
+		BlockController.BreakBlock(targetPlayer, targetCharacter, targetTempData, damageConfig.CustomBlockBreakVfx)
+		return "BlockBreak"
 	else
-		BlockController.HitBlock(targetPlayer, targetCharacter, targetTempData, amount)
+		BlockController.HitBlock(targetPlayer, targetCharacter, targetTempData, damageConfig.Amount, damageConfig.CustomBlockHitVfx)
+		return "BlockHit"
 	end
 end
 

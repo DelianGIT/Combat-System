@@ -82,19 +82,18 @@ local function startCircularProgressBar(leftGradient: UIGradient, rightGradient:
 end
 
 local function startActivationTween(uiGradient)
-	if activeSkill then
-		uiGradient.Offset = startVector2
-		local tween =
-			TweenService:Create(uiGradient, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
-				Offset = endVector2,
-			})
+	uiGradient.Offset = startVector2
+	local tween = TweenService:Create(uiGradient, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+			Offset = endVector2,
+		})
 
-		tween.Completed:Once(function()
+	tween.Completed:Once(function(playbackState: Enum.PlaybackState)
+		if playbackState == Enum.PlaybackState.Completed then
 			startActivationTween(uiGradient)
-		end)
+		end
+	end)
 
-		tween:Play()
-	end
+	tween:Play()
 end
 
 --// MODULE FUNCTIONS
@@ -141,6 +140,10 @@ function GuiLists.AddSkill(list: Frame, skillName: string, keybind: Enum.KeyCode
 end
 
 function GuiLists.StartCooldown(skill: Frame, duration: number)
+	if duration <= 0 then
+		return
+	end
+
 	local cooldown = skill.Cooldown
 	local cooldownValue = cooldown.Value.Value
 	local leftGradient = cooldown.Left.Frame.UIGradient

@@ -9,9 +9,22 @@ local NpcMaker = require(ServerModules.NpcMaker)
 local spawners = workspace.Spawners
 local immortalSpawn = spawners.Immortal
 local attackingSpawn = spawners.Attacking
+local blockingSpawn = spawners.Blocking
+
+--// FUNCTIONS
+local function spawnDummy(name: string, spawner: Part)
+	local npc = NpcMaker.Spawn(name, spawner.CFrame)
+	local character = npc.Character
+	character.Humanoid.Died:Connect(function()
+		task.wait(5)
+		character:Destroy()
+		spawnDummy(name, spawner)
+	end)
+end
 
 --// SPAWNING NPC
-NpcMaker.Spawn("ImmortalDummy", immortalSpawn.CFrame)
-NpcMaker.Spawn("AttackingDummy", attackingSpawn.CFrame)
+spawnDummy("ImmortalDummy", immortalSpawn)
+spawnDummy("AttackingDummy", attackingSpawn)
+spawnDummy("BlockingDummy", blockingSpawn)
 
 return true

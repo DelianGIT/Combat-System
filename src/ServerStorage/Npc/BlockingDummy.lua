@@ -3,16 +3,17 @@ local ServerStorage = game:GetService("ServerStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
-local SkillLibrary = require(ServerModules.SkillLibrary)
+local BlockController = require(ServerModules.BlockController)
 
 --// FUNCTIONS
 local function spawned(npc: {}, character: Model, tempData: {})
-	local skillPack = SkillLibrary.GiveSkillPack("Main", npc, tempData)
-	local cooldown = skillPack.Skills.Punch.Cooldown
-
+	tempData.BlockMaxDurability = math.huge
+	
 	local humanoid = character.Humanoid
-	while humanoid.Health > 0 and task.wait(cooldown) do
-		skillPack:StartSkill("Punch")
+	while humanoid.Health > 0 and task.wait(0.5) do
+		if not tempData.IsBlocking then
+			BlockController.EnableBlock(npc, tempData)
+		end
 	end
 end
 

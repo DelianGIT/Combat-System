@@ -2,6 +2,7 @@
 local alignPosition = Instance.new("AlignPosition")
 local alignOrientation = Instance.new("AlignOrientation")
 local linearVelocity = Instance.new("LinearVelocity")
+local bodyVelocity = Instance.new("BodyVelocity")
 local attachment = Instance.new("Attachment")
 
 local BodyMover = {}
@@ -9,7 +10,7 @@ local BodyMover = {}
 --// MODULE FUNCTIONS
 function BodyMover.AlignPosition(character: Model)
 	local humanoidRootPart = character.HumanoidRootPart
-	if humanoidRootPart.AlignPosition then
+	if humanoidRootPart:FindFirstChild("AlignPosition") then
 		return
 	end
 
@@ -23,7 +24,7 @@ end
 
 function BodyMover.AlignOrientation(character: Model)
 	local humanoidRootPart = character.HumanoidRootPart
-	if humanoidRootPart.AlignOrientation then
+	if humanoidRootPart:FindFirstChild("AlignOrientation") then
 		return
 	end
 
@@ -37,7 +38,7 @@ end
 
 function BodyMover.LinearVelocity(character: Model)
 	local humanoidRootPart = character.HumanoidRootPart
-	if humanoidRootPart.LinearVelocity then
+	if humanoidRootPart:FindFirstChild("LinearVelocity") then
 		return
 	end
 
@@ -46,6 +47,18 @@ function BodyMover.LinearVelocity(character: Model)
 	newLinearVelocity.Parent = humanoidRootPart
 
 	return newLinearVelocity
+end
+
+function BodyMover.BodyVelocity(character: Model)
+	local humanoidRootPart = character.HumanoidRootPart
+	if humanoidRootPart:FindFirstChild("BodyVelocity") then
+		return
+	end
+
+	local newBodyVelocity = bodyVelocity:Clone()
+	newBodyVelocity.Parent = humanoidRootPart
+
+	return newBodyVelocity
 end
 
 function BodyMover.CreateAttachment(character: Model)

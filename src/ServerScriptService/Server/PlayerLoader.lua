@@ -47,7 +47,7 @@ local function loadCharacter(player: Player)
 	local tempData = TempData.Get(player)
 	if tempData.NotLoadedCharacter then
 		tempData.NotLoadedCharacter = nil
-		CharacterMaker.Make(player)
+		CharacterMaker.Make(player, tempData)
 	end
 end
 
@@ -80,7 +80,6 @@ local function playerAdded(player: Player)
 	for _, packName in savedData.Data.SkillPacks do
 		SkillLibrary.GiveSkillPack(packName, player, tempData)
 	end
-	SkillLibrary.MakeSkillEvents(tempData)
 
 	loadedPlayers[player] = true
 	tempData.NotLoaded = nil

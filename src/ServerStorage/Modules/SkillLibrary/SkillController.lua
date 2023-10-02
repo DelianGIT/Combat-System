@@ -43,15 +43,15 @@ function SkillController.CanInterrupt(ignoreChecks: boolean, packName: string, s
 		return true
 	end
 
+	if not skillData.CanBeInterrupted then
+		return
+	end
+	
 	if not activeSkill then
 		return
 	end
 
 	if activeSkill.PackName ~= packName or activeSkill.SkillName ~= skillName then
-		return
-	end
-
-	if not skillData.CanBeInterrupted then
 		return
 	end
 	

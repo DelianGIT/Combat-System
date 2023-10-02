@@ -3,6 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 --// VARIABLES
+local ignoreFolder = workspace.Ignore
+
 local billboardGuiPart = ReplicatedStorage.Gui.DamageIndicator
 
 local amountLabelTweenInfo1 = TweenInfo.new(1, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
@@ -23,7 +25,7 @@ local function prepareGui(guiPart: Part, amountLabel: TextLabel, dealtDamage: nu
 	amountLabel.Rotation = math.random(-200, 200) / 10
 	amountLabel.Size = zeroSize
 	guiPart.Position = target.HumanoidRootPart.Position + getOffset()
-	guiPart.Parent = target
+	guiPart.Parent = ignoreFolder
 end
 
 local function startTweens(guiPart: Part, amountLabel: TextLabel, attacker: Players | Model)
