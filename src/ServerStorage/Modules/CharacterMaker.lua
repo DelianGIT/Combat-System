@@ -15,13 +15,14 @@ local hpIndicator = ServerStorage.Assets.Gui.HpIndicator
 local CharacterMaker = {}
 
 --// FUNCTIONS
-local function stopActiveSkill(tempData: {})
-	local activeSkill = tempData.ActiveSkill
-	if activeSkill then
-		local packName = activeSkill.PackName
-		local skillName = activeSkill.SkillName
+local function stopActiveSkills(tempData: {})
+	local activeSkills = tempData.ActiveSkills
+	local skillPacks = tempData.SkillPacks
+
+	for skillName, properties in activeSkills do
+		local pack = skillPacks[properties.PackName]
 		task.spawn(function()
-			tempData.SkillPacks[packName]:InterruptSkill(skillName, true)
+			pack:InterruptSkill(skillName, true)
 		end)
 	end
 end
@@ -68,7 +69,7 @@ local function prepareHumanoid(player: Player, tempData: {}, character: Model)
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.Died:Connect(function()
-		stopActiveSkill(tempData)
+		stopActiveSkills(tempData)
 		CharacterMaker.Make(player, tempData)
 	end)
 	makeHpIndicator(player, character, humanoid)

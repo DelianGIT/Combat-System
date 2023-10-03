@@ -1,11 +1,11 @@
 --// SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 --// VARIABLES
 local vfxPacks = {}
 
 --// CONFIG
-local VFX_FOLDER = ReplicatedStorage.Vfx
+local VFX_FOLDER = ReplicatedFirst.Vfx
 
 --// REQUIRING VFX MODULES
 for _, folder in VFX_FOLDER:GetChildren() do

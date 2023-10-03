@@ -35,7 +35,7 @@ local dataStore = DataLibrary.CreateDataStore("Main", {
 
 TempData.SetProfileTemplate({
 	SkillPacks = {},
-	Cooldowns = {},
+	ActiveSkills = {},
 	CanUseSkills = true,
 	NotLoaded = true,
 	NotLoadedCharacter = true,
@@ -52,8 +52,8 @@ local function loadCharacter(player: Player)
 end
 
 local function savePlayerData(player)
-	dataStore:SaveData(player, STUDIO_MODE)
-	dataStore:RemoveData(player, STUDIO_MODE)
+	dataStore:Save(player, STUDIO_MODE)
+	dataStore:Remove(player, STUDIO_MODE)
 end
 
 local function saveAllPlayersData()
@@ -62,10 +62,27 @@ local function saveAllPlayersData()
 	end
 end
 
+local function sendDataToClient(player: Player)
+	if not loadedPlayers[player] then
+		repeat task.wait() until loadedPlayers[player]
+		loadedPlayers[player] = nil
+	end
+
+	local tempData = TempData.Get(player)
+
+	local givenPacks = {}
+	for packName, _ in tempData.SkillPacks do
+		table.insert(givenPacks, packName)
+	end
+	remoteEvent:Fire(player, "SkillPacks", givenPacks)
+
+	print("Sent all data to " .. player.Name .. "'s client")
+end
+
 local function playerAdded(player: Player)
 	print("Player " .. player.Name .. " added")
 
-	local savedData = dataStore:LoadData(player, STUDIO_MODE)
+	local savedData = dataStore:Load(player, STUDIO_MODE)
 	if not savedData then
 		player:Kick("Error while loading data")
 		return
@@ -87,42 +104,31 @@ local function playerAdded(player: Player)
 	print(player.Name .. "'s data loaded")
 end
 
-local function sendDataToClient(player: Player)
-	if not loadedPlayers[player] then
-		repeat task.wait() until loadedPlayers[player]
-		loadedPlayers[player] = nil
-	end
-
-	local savedData = dataStore:GetData(player)
-
-	local keybindsInfo = {}
-	for _, packName in savedData.Data.SkillPacks do
-		keybindsInfo[packName] = SkillLibrary.GetSkillsKeybindsInfo(packName)
-	end
-	remoteEvent:Fire(player, "SkillPacks", keybindsInfo)
-
-	print("Sent all data to " .. player.Name .. "'s client")
-end
-
 local function playerRemoving(player: Player)
 	print("Player " .. player.Name .. " removing")
 
-	task.spawn(function()
-		local tempData = TempData.Get(player)
-		local skillPacks = tempData.SkillPacks
-		local activeSkill = tempData.ActiveSkill
-		if activeSkill then
-			local pack = skillPacks[activeSkill.PackName]
-			pack:InterruptSkill(activeSkill.SkillName, true)
+	local tempData = TempData.Get(player)
+	if tempData and not tempData.NotLoaded then
+		if not tempData.NotLoaded then
+			task.spawn(function()
+				local skillPacks = tempData.SkillPacks
+				local activeSkills = tempData.ActiveSkills
+
+				for skillName, properties in activeSkills do
+					local pack = skillPacks[properties.PackName] 
+					pack:InterruptSkill(skillName, true)
+				end
+	
+				for _, pack in tempData.SkillPacks do
+					pack.Communicator:Destroy()
+				end
+			end)
 		end
 
-		for _, pack in tempData.SkillPacks do
-			pack.Communicator:Destroy()
-		end
-	end)
+		TempData.Delete(player)
+	end
 
 	savePlayerData(player)
-	TempData.Delete(player)
 
 	print(player.Name .. "'s data removed")
 end

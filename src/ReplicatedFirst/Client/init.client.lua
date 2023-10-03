@@ -1,9 +1,11 @@
 --// SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 --// MODULES
-local Modules = ReplicatedStorage:WaitForChild("Modules")
-local ClientModules = Modules:WaitForChild("Client")
+ReplicatedStorage:WaitForChild("Modules")
+
+local ClientModules = ReplicatedFirst:WaitForChild("Modules")
 local SkillLibrary = require(ClientModules:WaitForChild("SkillLibrary"))
 require(ClientModules:WaitForChild("VfxLibrary"))
 
@@ -43,9 +45,9 @@ completeLoadingStage("Client")
 print("Client started")
 
 --// EVENTS
-remoteEvent:On("SkillPacks", function(keybindsInfo)
-	for packName, info in keybindsInfo do
-		SkillLibrary.AddSkillPack(packName, info)
+remoteEvent:On("SkillPacks", function(packs: { [number]: string })
+	for _, packName in packs do
+		SkillLibrary.AddSkillPack(packName)
 	end
 
 	completeLoadingStage("SkillPacks")

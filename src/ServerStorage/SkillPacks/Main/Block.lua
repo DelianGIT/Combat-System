@@ -5,15 +5,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ServerModules = ServerStorage.Modules
 local BlockController = require(ServerModules.BlockController)
 
---// VARIABLES
-local data = {
-	Name = "Block",
-	Cooldown = 1,
-	InputKey = Enum.KeyCode.F,
-	InputState = "Begin",
-}
-
---// FUNCTIONS
+--// SKILL
 local functions = {
 	Start = function(player: Player | {}, _, tempData: {})
 		BlockController.EnableBlock(player, tempData)
@@ -25,6 +17,6 @@ local functions = {
 }
 
 return {
-	Data = data,
+	Data = {},
 	Functions = functions,
 }

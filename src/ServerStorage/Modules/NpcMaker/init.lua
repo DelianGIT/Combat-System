@@ -19,6 +19,7 @@ local NpcMaker = {}
 --// SETTING TEMP DATA PROFILE TEMPLATE
 TempData.SetProfileTemplate({
 	SkillPacks = {},
+	ActiveSkills = {},
 	CanUseSkills = true,
 	BlockMaxDurability = 100,
 })
@@ -49,12 +50,15 @@ local function makeCharacter(name: string, count: number, data: {}, cframe: CFra
 	return character
 end
 
-local function stopActiveSkill(tempData: {})
-	local activeSkill = tempData.ActiveSkill
-	if activeSkill then
-		local packName = activeSkill.PackName
-		local skillName = activeSkill.SkillName
-		tempData.SkillPacks[packName]:InterruptSkill(skillName, true)
+local function stopActiveSkills(tempData: {})
+	local activeSkills = tempData.ActiveSkills
+	local skillPacks = tempData.SkillPacks
+
+	for skillName, properties in activeSkills do
+		local pack = skillPacks[properties.PackName]
+		task.spawn(function()
+			pack:InterruptSkill(skillName, true)
+		end)
 	end
 end
 
@@ -93,7 +97,7 @@ local function prepairHumanoid(character: Model, npc: {}, tempData: {}, killedFu
 	makeHpIndicator(character, humanoid)
 
 	humanoid.Died:Connect(function()
-		stopActiveSkill(tempData)
+		stopActiveSkills(tempData)
 
 		if killedFunction then
 			task.spawn(killedFunction, npc, character, tempData)

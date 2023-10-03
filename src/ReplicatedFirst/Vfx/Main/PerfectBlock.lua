@@ -1,9 +1,9 @@
 --// SERVICES
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
-local Modules = ReplicatedStorage.Modules
-local ClientModules = Modules.Client
+local ClientModules = ReplicatedFirst.Modules
 local Utilities = require(ClientModules.Utilities)
 
 --// EFFECTS

@@ -11,10 +11,10 @@ local PlayerLocker = require(script.PlayerLocker)
 type DataStore = {
 	Name: string,
 
-	LoadData: (self: DataStore, player: Player, studioMode: boolean) -> ProfileStore.Profile,
-	GetData: (self: DataStore, player: Player) -> ProfileStore.Profile,
-	SaveData: (self: DataStore, player: Player, studioMode: boolean) -> (),
-	RemoveData: (self: DataStore, player: Player, studioMode: boolean) -> (),
+	Load: (self: DataStore, player: Player, studioMode: boolean) -> ProfileStore.Profile,
+	Get: (self: DataStore, player: Player) -> ProfileStore.Profile,
+	Save: (self: DataStore, player: Player, studioMode: boolean) -> (),
+	Remove: (self: DataStore, player: Player, studioMode: boolean) -> (),
 }
 
 --// CLASSES
@@ -33,7 +33,7 @@ if game.GameId < 1 then
 end
 
 --// DATASTORE FUNCTIONS
-function DataStore:LoadData(player: Player): ProfileStore.Profile
+function DataStore:Load(player: Player): ProfileStore.Profile
 	self._playerLocker:Lock(player)
 
 	if studioMode then
@@ -60,11 +60,11 @@ function DataStore:LoadData(player: Player): ProfileStore.Profile
 	end
 end
 
-function DataStore:GetData(player: Player): ProfileStore.Profile
+function DataStore:Get(player: Player): ProfileStore.Profile
 	return self._profileStore:GetProfile(player)
 end
 
-function DataStore:SaveData(player: Player): ()
+function DataStore:Save(player: Player): ()
 	self._playerLocker:WaitForUnlocking(player)
 	self._playerLocker:Lock(player)
 
@@ -79,7 +79,7 @@ function DataStore:SaveData(player: Player): ()
 	self._playerLocker:Unlock(player)
 end
 
-function DataStore:RemoveData(player: Player): ()
+function DataStore:Remove(player: Player): ()
 	self._playerLocker:WaitForUnlocking(player)
 
 	self._profileStore:DeleteProfile(player)

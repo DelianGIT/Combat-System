@@ -33,7 +33,7 @@ type DamageConfig = {
 --// VARIABLES
 local playersFolder = workspace.Living.Players
 
-local bodyVelocityMaxForce = Vector3.one * math.huge
+local bodyVelocityMaxForce = Vector3.one * 1e5
 
 local remoteEvent = Red.Server("DamageIndicator")
 
@@ -43,6 +43,7 @@ local Damager = {}
 function Damager.Knockback(character: Model, direction: Vector3, duration: number)
 	local bodyVelocity = BodyMover.BodyVelocity(character)
 	bodyVelocity.MaxForce = bodyVelocityMaxForce
+	bodyVelocity.P = 2e3
 	bodyVelocity.Velocity = direction
 
 	task.delay(duration, function()

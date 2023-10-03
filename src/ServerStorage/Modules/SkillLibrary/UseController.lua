@@ -2,12 +2,12 @@
 local SkillController = {}
 
 --// MODULE FUNCTIONS
-function SkillController.CanStart(skillName: string, tempData: {}, cooldownStore: {})
+function SkillController.CanStart(skillName: string, identifier: string, tempData: {}, cooldownStore: {})
 	if cooldownStore:IsOnCooldown(skillName) then
 		return
 	end
 
-	if tempData.ActiveSkill then
+	if tempData.BlockOtherSkills or tempData.ActiveSkills[identifier] then
 		return
 	end
 
@@ -18,16 +18,12 @@ function SkillController.CanStart(skillName: string, tempData: {}, cooldownStore
 	return true
 end
 
-function SkillController.CanEnd(packName: string, skillName: string, activeSkill: {}, skillFunctions: {})
+function SkillController.CanEnd(activeSkill: {}, skillFunctions: {})
 	if not activeSkill then
 		return
 	end
 
 	if activeSkill.RequestedForEnd or activeSkill.State == "End" then
-		return
-	end
-
-	if activeSkill.PackName ~= packName or activeSkill.SkillName ~= skillName then
 		return
 	end
 
@@ -38,7 +34,7 @@ function SkillController.CanEnd(packName: string, skillName: string, activeSkill
 	return true
 end
 
-function SkillController.CanInterrupt(ignoreChecks: boolean, packName: string, skillName: string, activeSkill: {}, skillData: {})
+function SkillController.CanInterrupt(ignoreChecks: boolean, activeSkill: {}, skillData: {})
 	if ignoreChecks then
 		return true
 	end
@@ -51,10 +47,6 @@ function SkillController.CanInterrupt(ignoreChecks: boolean, packName: string, s
 		return
 	end
 
-	if activeSkill.PackName ~= packName or activeSkill.SkillName ~= skillName then
-		return
-	end
-	
 	return true
 end
 
