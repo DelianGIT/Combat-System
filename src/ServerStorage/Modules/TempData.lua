@@ -1,42 +1,33 @@
 --// SERVICES
-local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
-local ServerModules = ServerStorage.Modules
-local Utilities = require(ServerModules.Utilities)
+local SharedModules = ReplicatedStorage.Modules
+local Utilities = require(SharedModules.Utilities)
 
 --// VARIABLES
-local profileTemplate
+local template
 
-local profiles = {}
+local allData = {}
 local TempData = {}
 
 --// MODULE FUNCTIONS
-function TempData.SetProfileTemplate(template: { [string]: any })
-	profileTemplate = Utilities.DeepTableClone(template)
+function TempData.SetTemplate(templateToSet: { [string]: any })
+	template = Utilities.DeepTableClone(templateToSet)
 end
 
 function TempData.Create(player: Player)
-	local profile = Utilities.DeepTableClone(profileTemplate)
-	profiles[player.Name] = profile
-	return profile
+	local newData = Utilities.DeepTableClone(template)
+	allData[player.Name] = newData
+	return newData
 end
 
 function TempData.Get(player: Player)
-	local profile = profiles[player.Name]
-	if not profile then
-		warn(player.Name .. "'s temp data not found")
-	else
-		return profile
-	end
+	return allData[player.Name]
 end
 
 function TempData.Delete(player: Player)
-	if not profiles[player.Name] then
-		warn(player.Name .. "'s temp data already doesnt exist")
-	else
-		profiles[player.Name] = nil
-	end
+	allData[player.Name] = nil
 end
 
 return TempData

@@ -6,13 +6,13 @@ local Players = game:GetService("Players")
 local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
+--// CONFIG
+local RENDER_DISTANCE = 1024
+
 --// VARIABLES
 local remoteEvent = Red.Server("VfxControl")
 
 local VfxController = {}
-
---// CONFIG
-local RENDER_DISTANCE = 1024
 
 --MODULE FUNCTIONS
 function VfxController.Start(packName: string, vfxName: string, character: Model, ...: any)

@@ -1,9 +1,8 @@
 --// TYPES
 export type CooldownStore = {
 	Add: (self: CooldownStore, action: string, duration: number) -> (),
-	Start: (self: CooldownStore, action: string) -> (),
-	Remove: (self: CooldownStore, action: string) -> (),
-	IsOnCooldown: (self: CooldownStore, action: string) -> (),
+	Start: (self: CooldownStore, action: string) -> number,
+	IsOnCooldown: (self: CooldownStore, action: string) -> boolean,
 }
 
 --// CLASSES
@@ -21,17 +20,13 @@ function CooldownStore:Start(action: string)
 	return cooldown[2]
 end
 
-function CooldownStore:Remove(action: string)
-	self[action] = nil
-end
-
 function CooldownStore:IsOnCooldown(action: string)
 	local cooldown = self[action]
-	return cooldown and tick() - cooldown[1] < cooldown[2] or false
+	return if cooldown then tick() - cooldown[1] < cooldown[2] else false
 end
 
 return {
-	new = function()
+	new = function(): CooldownStore
 		return setmetatable({}, CooldownStore)
-	end,
+	end
 }

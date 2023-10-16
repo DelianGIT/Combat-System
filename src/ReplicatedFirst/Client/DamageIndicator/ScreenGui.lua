@@ -14,20 +14,20 @@ local hitsLabel = mainFrame.Hits
 local hitsStroke = hitsLabel.UIStroke
 local timerFrame = mainFrame.Timer
 
-local transparencyTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-local timerTweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-local mainFrameTweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, true)
-
 local startTimerSize = UDim2.fromScale(1.25, 0.083)
 local endTimerSize = UDim2.fromScale(0, 0.083)
 local startMainFrameSize = UDim2.fromScale(0.104, 0.148)
 local endMainFrameSize = UDim2.fromScale(0.13, 0.185)
 
+local transparencyTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+local timerTweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local mainFrameTweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, true)
+
 local hitsAmount = 0
 local damageAmount = 0
-local sign = 1
+local rotationSign = 1
 
-local guiActive = false
+local active = false
 
 --// FUNCTIONS
 local function tweenTransparency(value: number)
@@ -56,26 +56,24 @@ local function changeLabels(amount: number)
 	damageLabel.Text = damageAmount
 end
 
-local function startTimer()
+local function updateTimer()
 	timerFrame.Size = startTimerSize
 
 	local timerTween = TweenService:Create(timerFrame, timerTweenInfo, {
-		Size = endTimerSize,
+		Size = endTimerSize
 	})
-
 	timerTween.Completed:Once(function(playbackState: Enum.PlaybackState)
 		if playbackState == Enum.PlaybackState.Completed then
 			tweenTransparency(1)
-			guiActive = false
+			active = false
 			hitsAmount = 0
 			damageAmount = 0
 		end
 	end)
-
 	timerTween:Play()
 end
 
-local function changeSize()
+local function updateSize()
 	mainFrame.Size = startMainFrameSize
 	TweenService:Create(mainFrame, mainFrameTweenInfo, {
 		Size = endMainFrameSize,
@@ -83,19 +81,19 @@ local function changeSize()
 end
 
 local function changeRotation()
-	sign *= -1
-	mainFrame.Rotation = math.random(1, 15) * sign
+	rotationSign *= -1
+	mainFrame.Rotation = math.random(1, 15) * rotationSign
 end
 
 --// MODULE FUNCTION
 return function(amount: number)
-	if not guiActive then
+	if not active then
 		tweenTransparency(0)
-		guiActive = true
+		active = true
 	end
 
 	changeLabels(amount)
-	startTimer()
-	changeSize()
+	updateTimer()
+	updateSize()
 	changeRotation()
 end

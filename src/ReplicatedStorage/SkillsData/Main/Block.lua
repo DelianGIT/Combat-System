@@ -1,3 +1,3 @@
 return {
-	Cooldown = 1
+	Cooldown = 0.5
 }

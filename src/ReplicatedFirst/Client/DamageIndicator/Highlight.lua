@@ -16,7 +16,7 @@ return function(target: Model)
 	newHighlight.Parent = target
 
 	TweenService:Create(newHighlight, highlightTweenInfo, {
-		FillTransparency = 0.5,
+		FillTransparency = 0.5
 	}):Play()
 
 	task.delay(0.2, function()

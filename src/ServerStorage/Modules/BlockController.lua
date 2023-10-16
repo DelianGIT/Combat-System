@@ -20,127 +20,103 @@ local remoteEvent = Red.Server("BlockIndicator")
 local BlockController = {}
 
 --// MODULE FUNCTIONS
-function BlockController.EnableBlock(player: Player?, tempData: {})
-	local maxDurability = tempData.BlockMaxDurability
-	tempData.BlockDurability = maxDurability
-	tempData.BlockTime = tick()
-	tempData.IsBlocking = true
+function BlockController.EnableBlock(player: Player, tempData: {}, durability: number?)
+	durability = durability or tempData.BlockMaxDurability
+	tempData.Blocking = {
+		Durability = durability,
+		Time = tick()
+	}
 
-	if typeof(player) == "Instance" then
-		remoteEvent:Fire(player, "Enable", maxDurability)
+	if not tempData.IsNpc then
+		remoteEvent:Fire(player, "Enable", durability)
 	end
 end
 
-function BlockController.DisableBlock(player: Player?, tempData: {})
-	tempData.IsBlocking = false
+function BlockController.DisableBlock(player: Player, tempData: {})
+	tempData.Blocking = nil
 
-	if typeof(player) == "Instance" then
+	if not tempData.IsNpc then
 		remoteEvent:Fire(player, "Disable")
 	end
 end
 
-function BlockController.IncreaseDurability(player: Player?, tempData: {}, value: number)
-	tempData.BlockDurability += value
+function BlockController.ChangeDurability(player: Player?, tempData: {}, value: number)
+	local blocking = tempData.Blocking
+	if not blocking then return end
 
-	if typeof(player) == "Instance" then
+	blocking.Durability = value
+	
+	if not tempData.IsNpc then
 		remoteEvent:Fire(player, "ChangeDurability", value)
 	end
 end
 
-function BlockController.DecreaseDurability(player: Player?, tempData: {}, value: number)
-	if BlockController.IsBrokeBlock(tempData, value) then
-		BlockController.BreakBlock()
-	else
-		tempData.BlockDurability -= value
+function BlockController.AddDurability(player: Player?, tempData: {}, value: number)
+	local blocking = tempData.Blocking
+	if not blocking then return end
 
-		if typeof(player) == "Instance" then
-			remoteEvent:Fire(player, "ChangeDurability", -value)
-		end
-	end
-end
-
-function BlockController.IsPerfectBlocked(tempData: {})
-	if not tempData.IsBlocking then
-		return false
-	elseif tick() - tempData.BlockTime <= PERFECT_BLOCK_FRAME then
-		return true
-	end
-end
-
-function BlockController.IsBrokeBlock(tempData: {}, damageAmount: number)
-	if not tempData.IsBlocking then
-		return false
-	elseif tempData.BlockDurability - damageAmount <= 0 then
-		return true
+	blocking.Durability += value
+	
+	if not tempData.IsNpc then
+		remoteEvent:Fire(player, "ChangeDurability", blocking.Durability)
 	end
 end
 
 function BlockController.PerfectBlock(
-	blockerPlayer: Player?,
-	blockerCharacter: Model,
-	attackerCharacter: Model,
-	attackerTempData: {},
+	tPlayer: Player,
+	tTempData: {},
+	tCharacter: Model,
+	aCharacter: Model,
+	aTempData: {},
 	customVfx: boolean
 )
-	StunController.Apply(attackerCharacter, attackerTempData, 3)
+	StunController.Apply(aCharacter, aTempData, 3)
 
-	if typeof(blockerPlayer) == "Instance" then
-		remoteEvent:Fire(blockerPlayer, "PerfectBlock")
+	if not tTempData.IsNpc then
+		remoteEvent:Fire(tPlayer, "PerfectBlock")
 	end
 
-	if customVfx then
-		VfxController.Start(customVfx[1], customVfx[2], blockerCharacter)
-	else
-		VfxController.Start("Main", "PerfectBlock", blockerCharacter)
+	if not customVfx then
+		VfxController.Start("Main", "PerfectBlock", tCharacter)
 	end
 end
 
-function BlockController.BreakBlock(player: Player?, character: Model, tempData: {}, customVfx: boolean)
-	tempData.IsBlocking = false
+function BlockController.BreakBlock(player: Player, character: Model, tempData: {}, customVfx: boolean)
+	tempData.Blocking = nil
 	StunController.Apply(character, tempData, 3)
 
-	if typeof(player) == "Instance" then
+	if not tempData.IsNpc then
 		remoteEvent:Fire(player, "BlockBreak")
 	end
 
-	if customVfx then
-		VfxController.Start(customVfx[1], customVfx[2], character)
-	else
+	if not customVfx then
 		VfxController.Start("Main", "BlockBreak", character)
 	end
 end
 
-function BlockController.HitBlock(player: Player?, character: Model, tempData: {}, damageAmount: number, customVfx: boolean)
-	BlockController.DecreaseDurability(player, tempData, damageAmount)
+function BlockController.HitBlock(player: Player, tempData: {}, damageAmount: number, character: Model, customVfx: boolean)
+	BlockController.AddDurability(player, tempData, -damageAmount)
 
-	if customVfx then
-		VfxController.Start(customVfx[1], customVfx[2], character)
-	else
+	if not customVfx then
 		VfxController.Start("Main", "BlockHit", character)
 	end
 end
 
-function BlockController.ProcessBlock(
-	attackerCharacter: Model,
-	attackerTempData: {},
-	targetPlayer: Player?,
-	targetCharacter: Model,
-	targetTempData: {},
-	damageConfig: {}
-)
-	if not targetTempData.IsBlocking then
-		return
-	end
+function BlockController.IsPerfectBlocked(tempData: {}, blocking: {}?)
+	blocking = blocking or tempData.Blocking
 
-	if damageConfig.PerfectBlockable and BlockController.IsPerfectBlocked(targetTempData) then
-		BlockController.PerfectBlock(targetPlayer, targetCharacter, attackerCharacter, attackerTempData, damageConfig.CustomPerfectBlockVfx)
-		return "PerfectBlock"
-	elseif damageConfig.BlockBreaking or BlockController.IsBrokeBlock(targetTempData, damageConfig.Amount) then
-		BlockController.BreakBlock(targetPlayer, targetCharacter, targetTempData, damageConfig.CustomBlockBreakVfx)
-		return "BlockBreak"
-	else
-		BlockController.HitBlock(targetPlayer, targetCharacter, targetTempData, damageConfig.Amount, damageConfig.CustomBlockHitVfx)
-		return "BlockHit"
+	if not blocking then
+		return false
+	elseif tick() - blocking.Time <= PERFECT_BLOCK_FRAME then
+		return true
+	end
+end
+
+function BlockController.IsBrokeBlock(tempData: {}, blocking: {}?, damageAmount: number)
+	blocking = blocking or tempData.Blocking
+
+	if not blocking or blocking.Durability <= damageAmount then
+		return true
 	end
 end
 

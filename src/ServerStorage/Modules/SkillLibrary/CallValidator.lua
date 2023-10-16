@@ -1,24 +1,24 @@
 --// VARIABLES
-local SkillController = {}
+local CallValidator = {}
 
 --// MODULE FUNCTIONS
-function SkillController.CanStart(skillName: string, identifier: string, tempData: {}, cooldownStore: {})
+function CallValidator.Start(tempData: {}, cooldownStore: {}, skillName: string, identifier: string)
 	if cooldownStore:IsOnCooldown(skillName) then
 		return
 	end
-
+	
 	if tempData.BlockOtherSkills or tempData.ActiveSkills[identifier] then
 		return
 	end
 
-	if not tempData.CanUseSkills then
+	if tempData.CantUseSkills then
 		return
 	end
 	
 	return true
 end
 
-function SkillController.CanEnd(activeSkill: {}, skillFunctions: {})
+function CallValidator.End(activeSkill: {}, skillFunctions: {})
 	if not activeSkill then
 		return
 	end
@@ -34,7 +34,7 @@ function SkillController.CanEnd(activeSkill: {}, skillFunctions: {})
 	return true
 end
 
-function SkillController.CanInterrupt(ignoreChecks: boolean, activeSkill: {}, skillData: {})
+function CallValidator.Interrupt(ignoreChecks: boolean, activeSkill: {}, skillData: {})
 	if ignoreChecks then
 		return true
 	end
@@ -50,4 +50,4 @@ function SkillController.CanInterrupt(ignoreChecks: boolean, activeSkill: {}, sk
 	return true
 end
 
-return SkillController
+return CallValidator

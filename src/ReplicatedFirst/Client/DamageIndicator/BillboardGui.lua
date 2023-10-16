@@ -7,11 +7,11 @@ local ignoreFolder = workspace.Ignore
 
 local billboardGuiPart = ReplicatedStorage.Gui.DamageIndicator
 
+local zeroSize = UDim2.fromScale(0, 0)
+local amountLabelSize = UDim2.fromScale(1, 1)
+
 local amountLabelTweenInfo1 = TweenInfo.new(1, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
 local amountLabelTweenInfo2 = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 1)
-
-local amountLabelSize = UDim2.fromScale(1, 1)
-local zeroSize = UDim2.fromScale(0, 0)
 
 local attackersPastInfo = {}
 
@@ -20,7 +20,7 @@ local function getOffset()
 	return Vector3.new(math.random(-20, 20) / 10, math.random(-20, 20) / 10, 0)
 end
 
-local function prepareGui(guiPart: Part, amountLabel: TextLabel, dealtDamage: number, target: Model)
+local function updateGui(guiPart: Part, amountLabel: TextLabel, dealtDamage: number, target: Model)
 	amountLabel.Text = "-" .. dealtDamage
 	amountLabel.Rotation = math.random(-200, 200) / 10
 	amountLabel.Size = zeroSize
@@ -34,7 +34,7 @@ local function startTweens(guiPart: Part, amountLabel: TextLabel, attacker: Play
 	local tween = TweenService:Create(amountLabel, amountLabelTweenInfo1, {
 		Size = amountLabelSize,
 	})
-
+	
 	tween.Completed:Once(function(playbackState1: Enum.PlaybackState)
 		if playbackState1 ~= Enum.PlaybackState.Completed then
 			return
@@ -73,7 +73,7 @@ return function(attacker: Player | Model, target: Model, amount: number)
 	end
 
 	local amountLabel = guiPart.BillboardGui.Amount
-	prepareGui(guiPart, amountLabel, dealtDamage, target)
+	updateGui(guiPart, amountLabel, dealtDamage, target)
 
 	startTweens(guiPart, amountLabel, attacker)
 end

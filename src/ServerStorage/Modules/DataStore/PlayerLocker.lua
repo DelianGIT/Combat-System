@@ -1,5 +1,5 @@
 --// TYPES
-type PlayerLocker = {
+export type PlayerLocker = {
 	Lock: (self: PlayerLocker, player: Player) -> (),
 	Unlock: (self: PlayerLocker, player: Player) -> (),
 	IsLocked: (self: PlayerLocker, player: Player) -> boolean,

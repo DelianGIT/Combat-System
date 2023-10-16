@@ -11,7 +11,7 @@ local function spawned(npc: {}, character: Model, tempData: {})
 	
 	local humanoid = character.Humanoid
 	while humanoid.Health > 0 and task.wait(0.5) do
-		if not tempData.IsBlocking then
+		if not tempData.Blocking then
 			BlockController.EnableBlock(npc, tempData)
 		end
 	end

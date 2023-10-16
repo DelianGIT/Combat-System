@@ -1,11 +1,15 @@
 --// SERVICES
 local Players = game:GetService("Players")
-local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
 local BodyMover = require(ServerModules.BodyMover)
+
+local WalkSpeedController = require(ServerModules.WalkSpeedController)
+local JumpPowerController = require(ServerModules.JumpPowerController)
+local StunController = require(ServerModules.StunController)
 
 --// VARIABLES
 local charactersFolder = workspace.Living.Players
@@ -19,20 +23,13 @@ local function stopActiveSkills(tempData: {})
 	local activeSkills = tempData.ActiveSkills
 	local skillPacks = tempData.SkillPacks
 
-	for skillName, properties in activeSkills do
+	for identifier, properties in activeSkills do
+		local skillName = string.split(identifier, "_")[2]
 		local pack = skillPacks[properties.PackName]
 		task.spawn(function()
 			pack:InterruptSkill(skillName, true)
 		end)
 	end
-end
-
-local function moveCharacterToFolder(character: Model)
-	RunService.Heartbeat:Once(function()
-		character.Archivable = true
-		character.Parent = charactersFolder
-		character.Archivable = false
-	end)
 end
 
 local function makeHpIndicator(player: Player, character: Model, humanoid: Humanoid)
@@ -47,7 +44,7 @@ local function makeHpIndicator(player: Player, character: Model, humanoid: Human
 		if health == maxHealth then
 			amountLabel.Text = "∞%"
 		else
-			local amount = math.floor(health / humanoid.MaxHealth * 100)
+			local amount = math.floor(health / maxHealth * 100)
 			amountLabel.Text = amount .. "%"
 		end
 	end)
@@ -58,9 +55,17 @@ local function makeHpIndicator(player: Player, character: Model, humanoid: Human
 		if health == maxHealth then
 			amountLabel.Text = "∞%"
 		else
-			local amount = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
+			local amount = math.floor(health / maxHealth * 100)
 			amountLabel.Text = amount .. "%"
 		end
+	end)
+end
+
+local function moveCharacterToFolder(character: Model)
+	RunService.Heartbeat:Once(function()
+		character.Archivable = true
+		character.Parent = charactersFolder
+		character.Archivable = false
 	end)
 end
 
@@ -68,10 +73,16 @@ local function prepareHumanoid(player: Player, tempData: {}, character: Model)
 	local humanoid = character.Humanoid
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+
 	humanoid.Died:Connect(function()
+		WalkSpeedController.Cancel(character, tempData)
+		JumpPowerController.Cancel(character, tempData)
+		StunController.Cancel(character, tempData)
+
 		stopActiveSkills(tempData)
 		CharacterMaker.Make(player, tempData)
 	end)
+	
 	makeHpIndicator(player, character, humanoid)
 end
 

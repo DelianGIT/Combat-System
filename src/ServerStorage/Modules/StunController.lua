@@ -6,7 +6,7 @@ local ServerModules = ServerStorage.Modules
 local WalkSpeedController = require(ServerModules.WalkSpeedController)
 local JumpPowerController = require(ServerModules.JumpPowerController)
 
---// CONFIG
+--// CONFIGE
 local VISUALIZATION = true
 
 --VARIABLES
@@ -15,13 +15,18 @@ local StunController = {}
 --// MODULE FUNCTIONS
 function StunController.Apply(character: Model, tempData: {}, duration: number?)
 	local existingStun = tempData.Stun
-	if existingStun and existingStun[1] - (tick() - existingStun[2]) >= duration then
-		return
+	if existingStun and duration then
+		if existingStun.Duration - (tick() - existingStun.StartTime) >= duration then
+			return
+		end
 	end
 
 	local startTime = tick()
-	tempData.Stun = {duration, startTime}
-	tempData.CanUseSkills = false
+	tempData.Stun = {
+		Duration = duration,
+		StartTime = if duration then startTime else nil
+	}
+	tempData.CantUseSkills = true
 
 	WalkSpeedController.Change(character, tempData, 0, 5, duration)
 	JumpPowerController.Change(character, tempData, 0, 5, duration)
@@ -34,24 +39,24 @@ function StunController.Apply(character: Model, tempData: {}, duration: number?)
 	if not duration then return end
 	task.delay(duration, function()
 		local currentStun = tempData.Stun
-		if currentStun and currentStun[2] == startTime then
+		if currentStun and currentStun.StartTime == startTime then
 			StunController.Cancel(character, tempData)
 		end
 	end)
 end
 
 function StunController.Cancel(character: Model, tempData: {})
-	if tempData.Stun then
-		tempData.Stun = false
-		tempData.CanUseSkills = true
-		
-		WalkSpeedController.Cancel(character, tempData)
-		JumpPowerController.Cancel(character, tempData)
+	if not tempData.Stun then return end
 
-		if VISUALIZATION then
-			local indicator = character.HumanoidRootPart.StunIndicator
-			indicator.Enabled = false
-		end
+	tempData.Stun = nil
+	tempData.CantUseSkills = nil
+	
+	WalkSpeedController.Cancel(character, tempData)
+	JumpPowerController.Cancel(character, tempData)
+
+	if VISUALIZATION then
+		local indicator = character.HumanoidRootPart.StunIndicator
+		indicator.Enabled = false
 	end
 end
 
@@ -67,7 +72,9 @@ if VISUALIZATION then
 	end
 
 	livingFolder.Players.ChildAdded:Connect(addVisualization)
-	livingFolder.Npc.ChildAdded:Connect(addVisualization)
+	livingFolder.Npc.ChildAdded:Connect(function(folder: Folder)
+		folder.ChildAdded:Connect(addVisualization)
+	end)
 end
 
 return StunController

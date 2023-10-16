@@ -5,109 +5,88 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
-local BodyMover = require(ServerModules.BodyMover)
-local BlockController = require(ServerModules.BlockController)
 local TempData = require(ServerModules.TempData)
 local NpcTempData = require(ServerModules.NpcMaker.TempData)
-local VfxController = require(ServerModules.VfxController)
+local BlockController = require(ServerModules.BlockController)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
 --// TYPES
-type Vfx = {
-	PackName: string,
-	VfxName: string,
-}
+type DamageResult = "Hit" | "Block" | "PerfectBlock" | "BlockBreak"
 type DamageConfig = {
 	Amount: number,
-	BlockBreaking: boolean,
+	Blockable: boolean,
 	PerfectBlockable: boolean,
-	CustomHitVfx: boolean,
-	CustomBlockHitVfx: boolean,
-	CustomPerfectBlockVfx: boolean,
-	CustomBlockBreakVfx: boolean
+	BlockBreakable: boolean,
+	CustomBlock: boolean,
+	CustomPerfectBlock: boolean,
+	CustomBlockBreak: boolean
 }
 
 --// VARIABLES
 local playersFolder = workspace.Living.Players
-
-local bodyVelocityMaxForce = Vector3.one * 1e5
 
 local remoteEvent = Red.Server("DamageIndicator")
 
 local Damager = {}
 
 --// MODULE FUNCTIONS
-function Damager.Knockback(character: Model, direction: Vector3, duration: number)
-	local bodyVelocity = BodyMover.BodyVelocity(character)
-	bodyVelocity.MaxForce = bodyVelocityMaxForce
-	bodyVelocity.P = 2e3
-	bodyVelocity.Velocity = direction
-
-	task.delay(duration, function()
-		bodyVelocity:Destroy()
-	end)
-end
-
-function Damager.CreateDamageConfig(
-	amount: number,
-	blockBreaking: boolean,
-	perfectBlockable: boolean,
-	customHitVfx: boolean,
-	customBlockHitVfx: boolean,
-	customPerfectBlockVfx: boolean,
-	customBlockBreakVfx: boolean
-): DamageConfig
+function Damager.MakeConfig(): DamageConfig
 	return {
-		Amount = amount,
-		BlockBreaking = blockBreaking,
-		PerfectBlockable = perfectBlockable,
-		CustomHitVfx = customHitVfx,
-		CustomBlockHitVfx = customBlockHitVfx,
-		CustomPerfectBlockVfx = customPerfectBlockVfx,
-		CustomBlockBreakVfx = customBlockBreakVfx
+		Blockable = true,
+		PerfectBlockable = true,
+		BlockBreakable = false,
 	}
 end
 
 function Damager.Deal(
-	attackerPlayer: Player,
-	attackerCharacter: Model,
-	attackerTempData: {},
-	targetCharacter: Model,
-	damageConfig: DamageConfig
-)
-	local parent = targetCharacter.Parent
-	local targetPlayer, targetTempData
-	if parent == playersFolder then
-		targetPlayer = Players:GetPlayerFromCharacter(targetCharacter)
-		targetTempData = TempData.Get(targetPlayer)
+	aPlayer: Player,
+	aCharacter: Model,
+	aTempData: {},
+	tCharacter: Model,
+	config: DamageConfig
+): DamageResult
+	local amount = config.Amount
+
+	local tHumanoid = tCharacter.Humanoid
+	if tHumanoid.Health <= 0 then return end
+
+	local tPlayer, tTempData
+	if tCharacter.Parent == playersFolder then
+		tPlayer = Players:GetPlayerFromCharacter(tCharacter)
+		tTempData = TempData.Get(tPlayer)
 	else
-		targetTempData = NpcTempData.Get(targetCharacter)
+		tTempData = NpcTempData.Get(tCharacter)
 	end
 
-	local counterSkill = targetTempData.CounterSkill
+	local counterSkill = tTempData.CounterSkill
 	if counterSkill then
-		targetTempData.CounterSkill = nil
-		counterSkill(attackerPlayer, attackerCharacter, attackerTempData, damageConfig)
-	elseif targetTempData.IsBlocking then
-		return BlockController.ProcessBlock(attackerCharacter, attackerTempData, targetPlayer, targetCharacter, targetTempData, damageConfig)
-	else
-		local targetHumanoid = targetCharacter.Humanoid
-		targetHumanoid:TakeDamage(damageConfig.Amount)
-
-		local customVfx = damageConfig.CustomHitVfx
-		if customVfx then
-			VfxController.Start(customVfx[1], customVfx[2], targetCharacter)
-		end
-
-		if typeof(attackerPlayer) == "Instance" then
-			remoteEvent:Fire(attackerPlayer, "Hit", attackerPlayer, targetCharacter, damageConfig.Amount)
-		end
-
-		return "Hit"
+		tTempData.CounterSkill = nil
+		counterSkill(aPlayer, aCharacter, aTempData, amount)
+		return
 	end
+
+	local blocking = tTempData.Blocking
+	if blocking then
+		if config.PerfectBlockable and BlockController.IsPerfectBlocked(tTempData, blocking) then
+			BlockController.PerfectBlock(tPlayer, tTempData, tCharacter, aCharacter, aTempData, config.CustomPerfectBlock)
+			return "PerfectBlock"
+		elseif config.BlockBreakable or BlockController.IsBrokeBlock(tTempData, blocking, amount) then
+			BlockController.BreakBlock(tPlayer, tCharacter, tTempData, config.CustomBlockBreak)
+			return "BlockBreak"
+		elseif config.Blockable then
+			BlockController.HitBlock(tPlayer, tTempData, amount, tCharacter)
+			return "Block"
+		end
+	end
+
+	tHumanoid:TakeDamage(amount)
+	if not aTempData.IsNpc then
+		remoteEvent:Fire(aPlayer, "Hit", aPlayer, tCharacter, amount)
+	end
+	return "Hit"
 end
 
 return Damager

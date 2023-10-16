@@ -2,7 +2,10 @@
 local MemoryStoreService = game:GetService("MemoryStoreService")
 
 --// TYPES
-type SessionLocker = {
+export type SessionLocker = {
+	SortedMap: MemoryStoreSortedMap,
+	LockedPlayers: {[Player]: number},
+
 	Lock: (self: SessionLocker, player: Player) -> boolean,
 	Unlock: (self: SessionLocker, player: Player) -> (),
 }
@@ -11,37 +14,35 @@ type SessionLocker = {
 local SessionLocker: SessionLocker = {}
 SessionLocker.__index = SessionLocker
 
+--// CONFIG
+local LOCK_DURATION = 120
+
 --// VARIABLES
 local renewingEnabled = false
 
 local sessionLockers = {}
 
---// CONFIG
-local LOCK_DURATION = 120
-
 --// FUNCTIONS
-local function areThereLockedPlayers()
-	for _, sessionLocker in sessionLockers do
-		for _, _ in sessionLocker._lockedPlayers do
-			return true
-		end
-	end
-	return false
-end
-
 local function renewLocking()
-	for _, sessionLocker in sessionLockers do
-		local sortedMap = sessionLocker._sortedMap
-		local lockedPlayers = sessionLocker._lockedPlayers
+	local areThereLockedPlayers = false
 
-		for player, lastLock in lockedPlayers do
-			if tick() - lastLock < LOCK_DURATION then
+	for _, sessionLocker in sessionLockers do
+		local sortedMap = sessionLocker.SortedMap
+		local lockedPlayers = sessionLocker.LockedPlayers
+
+		for player, lastLockTime in lockedPlayers do
+			if tick() - lastLockTime >= LOCK_DURATION then
 				continue
 			end
+
 			sortedMap:SetAsync(player.UserId, true, LOCK_DURATION)
 			lockedPlayers[player] = tick()
+
+			areThereLockedPlayers = true
 		end
 	end
+
+	return areThereLockedPlayers
 end
 
 local function disableRenewing()
@@ -53,20 +54,20 @@ local function enableRenewing()
 
 	task.spawn(function()
 		while renewingEnabled and task.wait(5) do
-			if not areThereLockedPlayers() then
+			local areThereLockedPlayers = renewLocking()
+			if areThereLockedPlayers then
 				disableRenewing()
 			end
-			renewLocking()
 		end
 	end)
 end
 
---// SESSIONLOCKER FUNCTIONS
+--// SESSION LOCKER FUNCTIONS
 function SessionLocker:Lock(player: Player): boolean
 	local wasLocked = true
 
 	local success, err = pcall(function()
-		self._sortedMap:UpdateAsync(player.UserId, function(oldValue: boolean)
+		self.SortedMap:UpdateAsync(player.UserId, function(oldValue: boolean)
 			if oldValue then
 				return nil
 			else
@@ -78,26 +79,26 @@ function SessionLocker:Lock(player: Player): boolean
 
 	if not success then
 		warn("Session locker " .. self.Name .. " threw an error: " .. err)
-	elseif success and not wasLocked then
-		self._lockedPlayers[player] = tick()
+	elseif not wasLocked then
+		self.LockedPlayers[player] = tick()
 		if not renewingEnabled then
 			enableRenewing()
 		end
 	end
-
+	
 	return wasLocked
 end
 
 function SessionLocker:Unlock(player: Player): ()
-	self._lockedPlayers[player] = nil
-
 	local success, err = pcall(function()
-		self._sortedMap:RemoveAsync(player.UserId)
+		self.SortedMap:RemoveAsync(player.UserId)
 	end)
 
 	if not success then
 		warn("Session locker " .. self.Name .. " threw an error: " .. err)
 	end
+
+	self.LockedPlayers[player] = nil
 end
 
 --// MODULE FUNCTIONS
@@ -105,8 +106,8 @@ return {
 	new = function(name: string): SessionLocker
 		local sessionLocker = setmetatable({
 			Name = name,
-			_lockedPlayers = {},
-			_sortedMap = MemoryStoreService:GetSortedMap(name),
+			LockedPlayers = {},
+			SortedMap = MemoryStoreService:GetSortedMap(name),
 		}, SessionLocker)
 
 		sessionLockers[name] = sessionLocker

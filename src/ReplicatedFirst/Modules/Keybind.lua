@@ -1,64 +1,85 @@
 --// SERVICES
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
---// TYPES
-type InputState = "Begin" | "End" | "Hold" | "DoubleClick"
-type Key = Enum.UserInputType | Enum.KeyCode
+--// MODULES
+local SharedModules = ReplicatedStorage.Modules
+local Utilities = require(SharedModules.Utilities)
 
+--// TYPES
+type Key = Enum.UserInputType | Enum.KeyCode
+type State = "Begin" | "End" | "Hold" | "DoubleClick"
 type Keybind = {
 	Name: string,
-	InputState: InputState,
+	State: State,
 	Function: () -> (),
+	Disabled: boolean?,
 
 	HoldDuration: number?,
 	StartHoldTime: number?,
 	ClickFrame: number?,
-	Destroyed: boolean?,
+	LastClickTime: number?,
 
 	Enable: (self: Keybind) -> (),
 	Disable: (self: Keybind) -> (),
-	Destroy: (self: Keybind) -> (),
 }
 
 --// CLASSES
 local Keybind: Keybind = {}
-Keybind.__index = function(self: Keybind, key: any)
-	if not rawget(self, "Destroyed") then
-		return Keybind[key]
-	else
-		error("Bind is destroyed")
-	end
-end
+Keybind.__index = Keybind
 
 --// VARIABLES
-local beginKeybinds = {}
-local endKeybinds = {}
-local holdKeybinds = {}
-local doubleClickKeybinds = {}
+local keybinds = {}
 
 --// FUNCTIONS
-local function getKeybindsFolder(inputState: InputState)
-	if inputState == "Begin" then
-		return beginKeybinds
-	elseif inputState == "End" then
-		return endKeybinds
-	elseif inputState == "Hold" then
-		return holdKeybinds
-	elseif inputState == "DoubleClick" then
-		return doubleClickKeybinds
+local function createFolders(key: Key, state: State)
+	local stateFolder = keybinds[state]
+	local keyFolder
+
+	if stateFolder then
+		keyFolder = stateFolder[key]
+		if not keyFolder then
+			keyFolder = {}
+			stateFolder[key] = keyFolder
+		end
+	else
+		keyFolder = {}
+		stateFolder = {[key] = keyFolder}
+		keybinds[state] = stateFolder
+	end
+
+	return keyFolder, stateFolder
+end
+
+local function getFolders(key: Key, state: State)
+	local stateFolder = keybinds[state]
+	if not stateFolder then
+		return
+	end
+	
+	local keyFolder = stateFolder[key]
+	if keyFolder then
+		return keyFolder, stateFolder
 	end
 end
 
 local function getKey(input: InputObject)
-	if input.UserInputType == Enum.UserInputType.Keyboard then
+	local inputType = input.UserInputType
+	if inputType == Enum.UserInputType.Keyboard then
 		return input.KeyCode
 	else
-		return input.UserInputType
+		return inputType
 	end
 end
 
+--// INPUT PROCESSERS
 local function processBegin(key: Key)
-	for _, keybind: Keybind in beginKeybinds do
+	local keyFolder = getFolders(key, "Begin")
+	if not keyFolder then
+		return
+	end
+
+	for _, keybind in keyFolder do
 		if key == keybind.Key then
 			task.spawn(keybind.Function)
 		end
@@ -66,7 +87,12 @@ local function processBegin(key: Key)
 end
 
 local function processEnd(key: Key)
-	for _, keybind: Keybind in endKeybinds do
+	local keyFolder = getFolders(key, "End")
+	if not keyFolder then
+		return
+	end
+
+	for _, keybind in keyFolder do
 		if key == keybind.Key then
 			task.spawn(keybind.Function)
 		end
@@ -74,7 +100,12 @@ local function processEnd(key: Key)
 end
 
 local function processBeginHold(key: Key)
-	for _, keybind: Keybind in holdKeybinds do
+	local keyFolder = getFolders(key, "Hold")
+	if not keyFolder then
+		return
+	end
+
+	for _, keybind in keyFolder do
 		if key == keybind.Key then
 			local startTime = tick()
 			keybind.StartHoldTime = startTime
@@ -90,56 +121,84 @@ local function processBeginHold(key: Key)
 end
 
 local function processEndHold(key: Key)
-	for _, keybind: Keybind in holdKeybinds do
+	local keyFolder = getFolders(key, "Hold")
+	if not keyFolder then
+		return
+	end
+
+	for _, keybind in keyFolder do
 		if key == keybind.Key then
-			if keybind.StartHoldTime > 0 and tick() - keybind.StartHoldTime >= keybind.HoldDuration then
-				keybind.StartHoldTime = 0
-				task.spawn(keybind.Function)
-			end
+			keybind.StartHoldTime = 0
 		end
 	end
 end
 
 local function processDoubleClick(key: Key)
-	for _, keybind: Keybind in doubleClickKeybinds do
+	local keyFolder = getFolders(key, "DoubleClick")
+	if not keyFolder then
+		return
+	end
+
+	for _, keybind in keyFolder do
 		if key == keybind.Key then
 			if tick() - keybind.LastClickTime <= keybind.ClickFrame then
-				keybind.LastClickTime = false
+				keybind.LastClickTime = 0
 				task.spawn(keybind.Function)
+			else
+				keybind.LastClickTime = tick()
 			end
-			keybind.LastClickTime = tick()
 		end
 	end
 end
 
 --// KEYBIND FUNCTIONS
-local function createKeybind(name: string, key: Key, inputState: InputState, functionToBind: () -> ()): Keybind
+local function createKeybind(name: string, key: Key, state: State, functionToBind: () -> ()): Keybind
 	local keybind = setmetatable({
 		Name = name,
 		Key = key,
-		InputState = inputState,
+		State = state,
 		Function = functionToBind,
 	}, Keybind)
 
-	local keybindsFolder = getKeybindsFolder(inputState)
-	keybindsFolder[name] = keybind
+	local keyFolder = createFolders(key, state)
+	keyFolder[name] = keybind
 
 	return keybind
 end
 
 function Keybind:Enable()
-	local keybindsFolder = getKeybindsFolder(self.InputState)
-	keybindsFolder[self.Name] = self
+	if self.Disabled then
+		local keyFolder = createFolders(self.Key, self.State)
+		keyFolder[self.Name] = self
+		self.Disabled = nil
+	end
 end
 
 function Keybind:Disable()
-	local keybindsFolder = getKeybindsFolder(self.InputState)
-	keybindsFolder[self.Name] = nil
+	if not self.Disabled then
+		local keyFolder = createFolders(self.Key, self.State)
+		keyFolder[self.Name] = nil
+		self.Disabled = true
+	end
 end
 
 function Keybind:Destroy()
-	self:Disable()
-	self.Destroyed = true
+	local key, state = self.Key, self.State
+
+	local keyFolder, stateFolder = getFolders(key, state)
+	if not keyFolder then
+		return
+	end
+
+	keyFolder[self.Name] = nil
+
+	if Utilities.IsTableEmpty(keyFolder) then
+		stateFolder[key] = nil
+
+		if Utilities.IsTableEmpty(stateFolder) then
+			keybinds[state] = nil
+		end
+	end
 end
 
 --// EVENTS
@@ -160,7 +219,6 @@ UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessedEv
 	end
 end)
 
---// MODULE FUNCTIONS
 return {
 	Begin = function(name: string, key: Key, functionToBind: () -> nil): Keybind
 		return createKeybind(name, key, "Begin", functionToBind)
@@ -182,5 +240,5 @@ return {
 		keybind.ClickFrame = clickFrame
 		keybind.LastClickTime = 0
 		return keybind
-	end,
+	end
 }

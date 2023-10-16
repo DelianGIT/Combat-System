@@ -20,24 +20,22 @@ local mainColor = Color3.new(1, 1, 1)
 local perfectBlockColor = Color3.new(0.5, 0, 1)
 local breakBlockColor = Color3.new(1, 0, 0)
 
-local guiSize = UDim2.fromScale(0.25, 4)
-local zeroSize = UDim2.fromScale(0.25, 0)
 local oneSize = UDim2.fromScale(1, 1)
-
-local durability = 0
-local maxDurability = 0
+local zeroSize = UDim2.fromScale(0.25, 0)
+local mainSize = UDim2.fromScale(0.25, 4)
 
 local enableDisableTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 local perfectBlockTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, true)
 local breakBlockTweenInfo1 = TweenInfo.new(0.15, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 local breakBlockTweenInfo2 = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
+local durability = 0
+local maxDurability = 0
+
 --// FUNCTIONS
 local function enable(blockDurability: number)
 	local character = player.Character
-	if not character then
-		return
-	end
+	if not character then return end
 
 	durability = blockDurability
 	maxDurability = blockDurability
@@ -49,18 +47,16 @@ local function enable(blockDurability: number)
 	blockIndicator.Parent = character.HumanoidRootPart
 
 	TweenService:Create(blockIndicator, enableDisableTweenInfo, {
-		Size = guiSize,
+		Size = mainSize
 	}):Play()
 end
 
 local function disable()
 	local character = player.Character
-	if not character then
-		return
-	end
+	if not character then return end
 
 	local tween = TweenService:Create(blockIndicator, enableDisableTweenInfo, {
-		Size = zeroSize,
+		Size = zeroSize
 	})
 	tween.Completed:Once(function(playbackState: Enum.PlaybackState)
 		if playbackState == Enum.PlaybackState.Completed then
@@ -71,7 +67,7 @@ local function disable()
 end
 
 local function changeDurability(value: number)
-	durability += value
+	durability = value
 	bar.Size = UDim2.fromScale(1, durability / maxDurability)
 end
 
@@ -85,7 +81,7 @@ local function perfectBlock()
 end
 
 local function blockBreak()
-	changeDurability(-durability)
+	changeDurability(0)
 
 	TweenService:Create(bar, breakBlockTweenInfo1, {
 		BackgroundColor3 = breakBlockColor,

@@ -12,7 +12,7 @@ local function spawned(npc: {}, character: Model, tempData: {})
 
 	local humanoid = character.Humanoid
 	while humanoid.Health > 0 and task.wait(cooldown) do
-		--skillPack:StartSkill("Punch")
+		skillPack:StartSkill("Punch")
 	end
 end
 

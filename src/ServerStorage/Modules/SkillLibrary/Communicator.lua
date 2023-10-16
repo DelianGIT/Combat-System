@@ -6,93 +6,119 @@ local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
 --// TYPES
-type FunctionToConnect = (any) -> ()
-export type Communicator = {
+export type Event = {
 	Name: string,
-	Owner: Player,
+	Player: Player,
+	Connections: { [string]: () -> () },
 
-	Fire:(self: Communicator, action: string, any) -> (),
-	Connect:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
-	Once:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
-	Disconnect:(self: Communicator, action: string) -> (),
-	DisconnectAll:(self: Communicator) -> (),
-	Destroy:(self: Communicator) -> ()
+	Fire: (action: string, any) -> (),
+	Connect: (action: string, functionToConnect: (any) -> ()) -> (),
+	Disconnect: () -> (),
+	Once: (action: string, functionToConnect: (any) -> ()) -> (),
+	Wait: (action: string) -> ()
+}
+export type Communicator = {
+	Player: Player,
+	Events: { [string]: Event },
+
+	CreateEvent: (self: Communicator, name: string) -> (),
+	DestroyEvent: (self: Communicator, name: string) -> (),
+	Destroy: (self: Communicator) -> ()
 }
 
 --// CLASSES
+local Event: Event = {}
+Event.__index = Event
+
 local Communicator: Communicator = {}
 Communicator.__index = Communicator
 
 --// VARIABLES
-local remoteEvent = Red.Server("SkillCommunication")
+local remoteEvent = Red.Server("SkillsCommunication")
 
 local communicators = {}
 
---// FUNCTIONS
-local function isTableEmpty(table: {})
-	for _, _ in table do
-		return false
+--// EVENT FUNCTIONS
+function Event:Fire(action: string, ...: any)
+	remoteEvent:Fire(self.Player, "", self.Name, action, ...)
+end
+
+function Event:Connect(action: string, functionToConnect: (any) -> ())
+	self.Connections[action] = functionToConnect
+end
+
+function Event:Disconnect(action: string)
+	self.Connections[action] = nil
+end
+
+function Event:Once(action: string, functionToConnect: (any) -> ())
+	self.Connections[action] = function(...)
+		self:Disconnect(action)
+		functionToConnect(...)
 	end
-	return true
+end
+
+function Event:Wait(action: string)
+	local thread = coroutine.running()
+
+	self.Connections[action] = function()
+		coroutine.resume(thread)
+	end
+
+	coroutine.yield()
 end
 
 --// COMMUNICATOR FUNCTIONS
-function Communicator:Fire(action: string, ...: any)
-	remoteEvent:Fire(self.Owner, "", self.Name, action, ...)
+function Communicator:CreateEvent(name: string): Event
+	local event = setmetatable({
+		Name = name,
+		Player = self.Player,
+		Connections = {}
+	}, Event)
+
+	self.Events[name] = event
+
+	return event
 end
 
-function Communicator:Connect(action: string, functionToConnect: FunctionToConnect)
-	self._connections[action] = functionToConnect
-end
-
-function Communicator:Once(action: string, functionToConnect: FunctionToConnect)
-	self:Connect(action, function(...: any)
-		self:Disconnect(action)
-		functionToConnect(...)
-	end)
-end
-
-function Communicator:Disconnect(action: string)
-	self._connections[action] = nil
+function Communicator:DestroyEvent(name: string)
+	self.Events[name] = nil
 end
 
 function Communicator:Destroy()
-	local playerCommunicators = communicators[self.Owner]
-	playerCommunicators[self.Name] = nil
-
-	if isTableEmpty(playerCommunicators) then
-		communicators[self.Owner] = nil
-	end
+	communicators[self.Player] = nil
 end
 
 --// EVENTS
-remoteEvent:On("", function(player: Player, name: string, action: string, ...: any)
-	local playerCommunicators = communicators[player]
-	local communicator = playerCommunicators[name]
+remoteEvent:On("", function(player: Player, eventName: string, action: string, ...: any)
+	local communicator = communicators[player]
 	if not communicator then
-		error("Not found " .. player.Name .. "'s communicator " .. name)
+		error("Not found communicator for " .. player.Name)
 	end
 
-	local connection = communicator._connections[action]
-	if connection then
-		connection(...)
-	else
-		warn("Connection " .. action .. " not found in " .. player.Name .. "'s communicator " .. name)
+	local event = communicator.Events[eventName]
+	if not event then
+		error(player.Name .. "'s event not found for action " .. action)
 	end
+
+	local connection = event.Connections[action]
+	if not connection then
+		error("Action " .. action .. " not found in event " .. eventName .. " in " .. player.Name .. "'s communicator")
+	end
+
+	connection(...)
 end)
 
+--// MODULE FUNCTION
 return {
-	new = function(name: string, player: Player): Communicator
+	new = function(player: Player): Communicator
 		local communicator = setmetatable({
-			Name = name,
-			Owner = player,
-			_connections = {},
+			Player = player,
+			Events = {}
 		}, Communicator)
 
-		local playerCommunicators = communicators[player] or {}
-		communicators[player] = playerCommunicators
-		playerCommunicators[name] = communicator
+		communicators[player] = communicator
 
 		return communicator
-	end,
+	end
 }

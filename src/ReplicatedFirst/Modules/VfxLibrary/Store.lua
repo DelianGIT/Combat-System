@@ -1,11 +1,11 @@
 --// SERVICES
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
---// VARIABLES
-local vfxPacks = {}
-
 --// CONFIG
 local VFX_FOLDER = ReplicatedFirst.Vfx
+
+--// VARIABLES
+local store = {}
 
 --// REQUIRING VFX MODULES
 for _, folder in VFX_FOLDER:GetChildren() do
@@ -16,11 +16,11 @@ for _, folder in VFX_FOLDER:GetChildren() do
 		if success then
 			pack[module.Name] = result
 		else
-			warn("Vfx module " .. module.Name .. " of pack " .. folder.Name .. " threw an error: " .. result)
+			warn("Vfx module " .. folder.Name .. "_" .. module.Name .. " threw an error: " .. result)
 		end
 	end
 
-	vfxPacks[folder.Name] = pack
+	store[folder.Name] = pack
 end
 
-return vfxPacks
+return store

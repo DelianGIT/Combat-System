@@ -1,6 +1,7 @@
 --// VARIABLES
 local Utilities = {}
 
+--// MODULE FUNCTIONS
 function Utilities.DeepTableClone(tableToClone: { [any]: any })
 	local result = {}
 
@@ -13,6 +14,13 @@ function Utilities.DeepTableClone(tableToClone: { [any]: any })
 	end
 
 	return result
+end
+
+function Utilities.IsTableEmpty(tableToCheck: {})
+	for _, _ in tableToCheck do
+		return false
+	end
+	return true
 end
 
 return Utilities

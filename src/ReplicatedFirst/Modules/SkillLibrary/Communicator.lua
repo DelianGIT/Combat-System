@@ -6,76 +6,84 @@ local Packages = ReplicatedStorage.Packages
 local Red = require(Packages.Red)
 
 --// TYPES
-type FunctionToConnect = (any) -> ()
-export type Communicator = {
-	Owner: Player,
-	Connections: {[string]: FunctionToConnect},
+type Event = {
+	Connections: {[string]: (any) -> ()},
 
-	Fire:(self: Communicator, action: string, any) -> (),
-	Connect:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
-	Once:(self: Communicator, functionToConnect: FunctionToConnect) -> (),
-	Disconnect:(self: Communicator, action: string) -> (),
-	DisconnectAll:(self: Communicator) -> (),
-	Destroy:(self: Communicator) -> ()
+	Fire:(self: Event, action: string, any) -> (),
+	Connect:(self: Event, functionToConnect: (any) -> ()) -> (),
+	Once:(self: Event, functionToConnect: (any) -> ()) -> (),
+	Disconnect:(self: Event, action: string) -> (),
+	Destroy:(self: Event) -> ()
 }
 
 --// CLASSES
-local Communicator: Communicator = {}
-Communicator.__index = Communicator
+local Event: Event = {}
+Event.__index = Event
 
 --// VARIABLES
 local remoteEvent = Red.Client("SkillCommunication")
 
-local communicators = {}
+local events = {}
 
---// COMMUNICATOR FUNCTIONS
-function Communicator:Fire(action: string, ...: any)
-	remoteEvent:Fire("", action, ...)
+--// EVENT FUNCTIONS
+function Event:Fire(action: string, ...: any)
+	remoteEvent:Fire("", self.Name, action, ...)
 end
 
-function Communicator:Connect(action: string, functionToConnect: FunctionToConnect)
-	self._connections[action] = functionToConnect
+function Event:Connect(action: string, functionToConnect: (any) -> ())
+	self.Connections[action] = functionToConnect
 end
 
-function Communicator:Once(action: string, functionToConnect: FunctionToConnect)
-	self:Connect(action, function(...: any)
+function Event:Disconnect(action: string)
+	self.Connections[action] = nil
+end
+
+function Event:Once(action: string, functionToConnect: (any) -> ())
+	self:Connect(action, function(...)
 		self:Disconnect(action)
 		functionToConnect(...)
 	end)
 end
 
-function Communicator:Disconnect(action: string)
-	self._connections[action] = nil
+function Event:Wait(action: string)
+	local thread = coroutine.running()
+
+	self.Connections[action] = function()
+		coroutine.resume(thread)
+	end
+
+	coroutine.yield()
 end
 
-function Communicator:Destroy()
-	communicators[self.Name] = nil
+function Event:Destroy()
+	events[self.Name] = nil
 end
 
 --// EVENTS
 remoteEvent:On("", function(name: string, action: string, ...: any)
-	local communicator = communicators[name]
-	if not communicator then
-		error("Communicator " .. name .. " not found")
+	local event = events[name]
+	if not event then
+		error("Event " .. name .. " not found")
 	end
 
-	local connection = communicator._connections[action]
+	local connection = event.Connections[action]
 	if connection then
 		connection(...)
 	else
-		warn("Connection " .. action .. " not found")
+		warn("Action " .. action .. " not found")
 	end
 end)
 
+--// MODULE FUNCTION
 return {
-	new = function(name: string): Communicator
-		local communicator = setmetatable({
+	new = function(name: string): Event
+		local event = setmetatable({
 			Name = name,
-			_connections = {}
-		}, Communicator)
+			Connections = {}
+		}, Event)
 
-		communicators[name] = communicator
+		events[name] = event
 
-		return communicator
-	end,
+		return event
+	end
 }

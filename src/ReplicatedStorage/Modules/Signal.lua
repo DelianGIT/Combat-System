@@ -1,9 +1,16 @@
 --// TYPES
 type Connection = {
-	Disconnect: (self: Connection) -> nil,
+	PreviousConnection: Connection,
+	NextConnection: Connection,
+	Disconnected: false?,
+	Function: (any) -> (),
+
+	Disconnect: (self: Connection) -> nil
 }
 
 type Signal = {
+	LastConnection: Connection?,
+
 	Fire: (self: Signal, any) -> nil,
 	DisconnectAll: (self: Signal) -> nil,
 	Connect: (self: Signal, functionToConnect: (any) -> nil) -> Connection,
@@ -18,68 +25,52 @@ Connection.__index = Connection
 local Signal: Signal = {}
 Signal.__index = Signal
 
---// FUNCTIONS
-local function checkFunctionArgument(functionArgument: (any) -> nil)
-	if type(functionArgument) ~= "function" then
-		error("Pass function to connect")
-	end
-end
-
 --// CONNECTION FUNCTIONS
 local function createConnection(functionToConnect: (any) -> nil): Connection
 	return setmetatable({
-		_connectedFunction = functionToConnect,
-		_previousConnection = false,
-		_nextConnection = false,
+		Function = functionToConnect
 	}, Connection)
 end
 
-function Connection:Disconnect(): nil
-	if self._disconnected then
-		warn("Connection is already disconnected")
+function Connection:Disconnect()
+	if self.Disconnected then
 		return
 	end
-	self._disconnected = true
+	self.Disconnected = true
 
-	local previousConnection = self._previousConnection
-	local nextConnection = self._nextConnection
+	local previousConnection = self.PreviousConnection
+	local nextConnection = self.NextConnection
 
 	if nextConnection then
-		nextConnection._previousConnection = previousConnection
+		nextConnection.PreviousConnection = previousConnection
 	end
 	if previousConnection then
-		previousConnection._nextConnection = nextConnection
+		previousConnection.NextConnection = nextConnection
 	end
 end
 
 --// SIGNAL FUNCTIONS
 function Signal:Fire(...: any)
-	local connection = self._lastConnection
+	local connection = self.LastConnection
 	while connection do
-		task.spawn(connection._connectedFunction, ...)
-		connection = connection._previousConnection
+		task.spawn(connection.Function, ...)
+		connection = connection.PreviousConnection
 	end
 end
 
 function Signal:DisconnectAll()
-	if not self._lastConnection then
-		warn("Connections are already disconnected")
-	else
-		self._lastConnection = false
-	end
+	self.LastConnection = false
 end
 
-function Signal:Connect(functionToConnect: (any) -> nil): Connection
-	checkFunctionArgument(functionToConnect)
-
+function Signal:Connect(functionToConnect: (any) -> ()): Connection
 	local connection = createConnection(functionToConnect)
 
-	local lastConnection = self._lastConnection
+	local lastConnection = self.LastConnection
 	if lastConnection then
-		lastConnection._nextConnection = connection
-		connection._previousConnection = lastConnection
+		lastConnection.NextConnection = connection
+		connection.PreviousConnection = lastConnection
 	end
-	self._lastConnection = connection
+	self.LastConnection = connection
 
 	return connection
 end
@@ -91,24 +82,21 @@ function Signal:Wait()
 		coroutine.resume(thread)
 	end)
 
-	return coroutine.yield()
+	coroutine.yield()
 end
 
-function Signal:Once(functionToConnect: (any) -> nil): Connection
-	checkFunctionArgument(functionToConnect)
-
+function Signal:Once(functionToConnect: (any) -> ()): Connection
 	local connection
-	connection = self:Connect(function()
+	connection = self:Connect(function(...)
 		connection:Disconnect()
-		functionToConnect()
+		functionToConnect(...)
 	end)
 end
 
---// MODULE FUNCTIONS
 return {
 	new = function(): Signal
 		return setmetatable({
-			_lastConnection = false,
+			LastConnection = false
 		}, Signal)
-	end,
+	end
 }

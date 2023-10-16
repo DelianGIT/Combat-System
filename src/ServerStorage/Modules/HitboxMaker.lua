@@ -15,8 +15,8 @@ type Hitbox = {
 	HitFunction: HitFunction,
 	Geometry: Geometry,
 	Type: HitboxType,
-	WhiteList: { Model },
-	HighAccuracy: boolean,
+	BlackList: { Model },
+	Precise: boolean,
 	Enabled: true?,
 
 	Enable: (self: Hitbox) -> (),
@@ -28,7 +28,7 @@ type Hitbox = {
 local VISUALIZATION = true
 
 --// CLASSES
-local Hitbox = {}
+local Hitbox: Hitbox = {}
 Hitbox.__index = Hitbox
 
 --// VARIABLES
@@ -49,15 +49,15 @@ local overlapParams = OverlapParams.new()
 overlapParams.FilterType = Enum.RaycastFilterType.Include
 overlapParams.FilterDescendantsInstances = { workspace.Living }
 
-local heartbeatConnection
-
 local enabledHitboxes = {}
 local HitboxMaker = {}
+
+local heartbeatConnection
 
 --// FUNCTIONS
 local function connectHeartbeat()
 	heartbeatConnection = RunService.Heartbeat:Connect(function()
-		if #enabledHitboxes then
+		if #enabledHitboxes == 0 then
 			heartbeatConnection:Disconnect()
 			heartbeatConnection = nil
 			return
@@ -72,7 +72,14 @@ local function connectHeartbeat()
 end
 
 --// MODULE FUNCTIONS
-function HitboxMaker.Raycast(whiteList: { Model }, origin: Vector3, direction: Vector3, hitFunction: HitFunction)
+function HitboxMaker.MakeHitboxPart(cframe: CFrame, size: Vector3)
+	local part = hitboxPart:Clone()
+	part.CFrame = cframe
+	part.Size = size
+	return part
+end
+
+function HitboxMaker.Raycast(blackList: { Model }, origin: Vector3, direction: Vector3, hitFunction: HitFunction)
 	if VISUALIZATION then
 		local size = Vector3.new(0.5, 0.5, direction.Magnitude)
 		local cframe = CFrame.lookAt(origin, origin + direction)
@@ -90,27 +97,28 @@ function HitboxMaker.Raycast(whiteList: { Model }, origin: Vector3, direction: V
 
 	if instance then
 		local character = instance.Parent
-		if character:FindFirstChild("Humanoid") and not table.find(whiteList, character) then
+		if character:FindFirstChild("Humanoid") and not table.find(blackList, character) then
 			task.spawn(hitFunction, character)
 			return character
 		end
 	end
 end
 
-function HitboxMaker.SpatialQuery(
-	whiteList: { Model },
-	cframe: CFrame,
-	size: Vector3,
-	highAccuracy: boolean,
-	hitFunction: HitFunction
-)
+function HitboxMaker.SpatialQuery(blackList: { Model }, cframe: CFrame, size: Vector3, precise: boolean, hitFunction: HitFunction)
+	local part
+	if VISUALIZATION or precise then
+		part = HitboxMaker.MakeHitboxPart(cframe, size)
+		part.Parent = hitboxesFolder
+	end
+
 	local hits
-	if highAccuracy then
-		local part = HitboxMaker.MakeHitboxPart(cframe, size)
-		part.Parent = if VISUALIZATION then hitboxesFolder else nil
-
+	if precise then	
 		hits = workspace:GetPartsInPart(part, overlapParams)
+	else
+		hits = workspace:GetPartBoundsInBox(cframe, size, overlapParams)
+	end
 
+	if part then
 		if VISUALIZATION then
 			task.delay(0.1, function()
 				part:Destroy()
@@ -118,97 +126,73 @@ function HitboxMaker.SpatialQuery(
 		else
 			part:Destroy()
 		end
-	else
-		if VISUALIZATION then
-			local part = HitboxMaker.MakeHitboxPart(cframe, size)
-			part.Parent = hitboxesFolder
-
-			task.delay(0.1, function()
-				part:Destroy()
-			end)
-		end
-
-		hits = workspace:GetPartBoundsInBox(cframe, size, overlapParams)
 	end
 
 	local hittedCharacters = {}
-	for _, hit in hits do
-		local character = hit.Parent
-		if
-			character:FindFirstChild("Humanoid")
-			and not table.find(hittedCharacters, character)
-			and not table.find(whiteList, character)
-		then
-			table.insert(hittedCharacters, character)
-		end
-	end
-
 	if hitFunction then
-		for _, character in hittedCharacters do
-			task.spawn(hitFunction, character)
+		for _, hit in hits do
+			local character = hit.Parent
+			if character:FindFirstChild("Humanoid")
+				and not table.find(hittedCharacters, character)
+				and not table.find(blackList, character)
+			then
+				table.insert(hittedCharacters, character)
+				task.spawn(hitFunction, character)
+			end
+		end
+	else
+		for _, hit in hits do
+			local character = hit.Parent
+			if character:FindFirstChild("Humanoid")
+				and not table.find(hittedCharacters, character)
+				and not table.find(blackList, character)
+			then
+				table.insert(hittedCharacters, character)
+			end
 		end
 	end
 
 	return hittedCharacters
 end
 
-function HitboxMaker.MakeHitboxPart(cframe: CFrame, size: Vector3)
-	local part = hitboxPart:Clone()
-	part.CFrame = cframe
-	part.Size = size
-	return part
-end
-
 --// HITBOX FUNCTIONS
-function HitboxMaker.new(
-	whiteList: { Model },
-	geometry: Geometry,
-	highAccuracy: boolean,
-	enabled: boolean,
-	hitFunction: HitFunction
-): Hitbox
+function HitboxMaker.new(blackList: { Model }, geometry: Geometry, precise: boolean, hitFunction: HitFunction): Hitbox
 	local hitbox = setmetatable({
 		HitFunction = hitFunction,
 		Geometry = geometry,
-		WhiteList = whiteList,
+		BlackList = blackList,
 	}, Hitbox)
 
 	if geometry.CFrame and geometry.Size then
 		hitbox.Type = "SpatialQuery"
-		hitbox.HighAccuracy = highAccuracy
+		hitbox.Precise = precise
 	elseif geometry.Origin and geometry.Direction then
 		hitbox.Type = "Raycast"
 	else
 		error("Invalid geometry: " .. geometry)
 	end
 
-	if enabled then
-		hitbox:Enable()
-	end
-
 	return hitbox
 end
 
 function Hitbox:Enable()
-	if self.Enabled then
-		return
-	end
-	self.Enabled = true
+	if not self.Enabled then
+		self.Enabled = true
 
-	table.insert(enabledHitboxes, self)
-
-	if not heartbeatConnection then
-		connectHeartbeat()
+		table.insert(enabledHitboxes, self)
+	
+		if not heartbeatConnection then
+			connectHeartbeat()
+		end
 	end
 end
 
 function Hitbox:Disable()
-	if not self.Enabled then
-		return
-	end
-	self.Enabled = nil
+	if self.Enabled then
+		self.Enabled = nil
 
-	table.remove(enabledHitboxes, table.find(enabledHitboxes, self))
+		table.remove(enabledHitboxes, table.find(enabledHitboxes, self))
+	end
 end
 
 function Hitbox:GetHits()
@@ -216,15 +200,9 @@ function Hitbox:GetHits()
 	local hitboxType = self.Type
 
 	if hitboxType == "Raycast" then
-		return HitboxMaker.Raycast(self.WhiteList, geometry.Origin, geometry.Direction, self.HitFunction)
+		return HitboxMaker.Raycast(self.BlackList, geometry.Origin, geometry.Direction, self.HitFunction)
 	else
-		return HitboxMaker.SpatialQuery(
-			self.WhiteList,
-			geometry.CFrame,
-			geometry.Size,
-			self.HighAccuracy,
-			self.HitFunction
-		)
+		return HitboxMaker.SpatialQuery(self.BlackList, geometry.CFrame, geometry.Size, self.Precise, self.HitFunction)
 	end
 end
 
