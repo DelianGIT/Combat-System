@@ -3,20 +3,15 @@ local ServerStorage = game:GetService("ServerStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
-local BlockController = require(ServerModules.BlockController)
+local BlockManager = require(ServerModules.DamageHandler).BlockManager
 
 --// SKILL
-local functions = {
+return {
 	Start = function(player: Player | {}, _, tempData: {})
-		BlockController.EnableBlock(player, tempData)
+		BlockManager.EnableBlock(player, tempData)
 	end,
 
 	End = function(player: Player | {}, _, tempData: {})
-		BlockController.DisableBlock(player, tempData)
+		BlockManager.DisableBlock(player, tempData)
 	end,
-}
-
-return {
-	Data = {},
-	Functions = functions,
 }

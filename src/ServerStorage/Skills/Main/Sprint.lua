@@ -3,21 +3,18 @@ local ServerStorage = game:GetService("ServerStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
-local WalkSpeedController = require(ServerModules.WalkSpeedController)
+local WalkSpeedManager = require(ServerModules.DamageHandler).WalkSpeedManager
 
---// SKILL
-local functions = {
+--// SKILL FUNCTIONS
+return {
 	Start = function(_, character: Model, tempData: {})
-		local currentWalkSpeed = character.Humanoid.WalkSpeed
-		WalkSpeedController.Change(character, tempData, currentWalkSpeed * 1.5, 1)
+		WalkSpeedManager.Change(character, tempData, {
+			Priority = 1,
+			Value = character.Humanoid.WalkSpeed * 1.5
+		})
 	end,
 
 	End = function(_, character: Model, tempData: {})
-		WalkSpeedController.Cancel(character, tempData)
-	end,
-}
-
-return {
-	Data = {},
-	Functions = functions,
+		WalkSpeedManager.Cancel(character, tempData)
+	end
 }

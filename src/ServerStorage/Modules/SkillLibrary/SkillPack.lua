@@ -11,13 +11,12 @@ local Utilities = require(SharedModules.Utilities)
 local ServerModules = ServerStorage.Modules
 local TempData = require(ServerModules.TempData)
 
-local Store = require(script.Parent.Store)
 local Communicator = require(script.Parent.Communicator)
+local Store = require(script.Parent.Store)
 local CallValidator = require(script.Parent.CallValidator)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
 local Trove = require(Packages.Trove)
 
 --// TYPES
@@ -25,7 +24,7 @@ type Skill = {
 	Data: { [string]: any },
 	Functions: {
 		Start: (owner: Player, character: Model, tempData: {}, skillData: {}, trove: {}, event: Communicator.Event, any) -> (),
-		End: (owner: Player, character: Model, tempData: {}, skillData: {}, trove: {}, event: Communicator.Event) -> (),
+		End: (owner: Player, character: Model, tempData: {}, skillData: {}, trove: {}, event: Communicator.Event, any) -> (),
 		Interrupt: (owner: Player, character: Model, tempData: {}, skillData: {}, trove: {}, event: Communicator.Event) -> ()
 	}
 }
@@ -38,7 +37,7 @@ type SkillPack = {
 	Communicator: Communicator.Communicator,
 
 	StartSkill: (self: SkillPack, name: string, any) -> (),
-	EndSkill: (self: SkillPack, name: string) -> (),
+	EndSkill: (self: SkillPack, name: string, any) -> (),
 	InterruptSkill: (self: SkillPack, name: string, ignoreChecks: boolean) -> ()
 }
 
@@ -47,7 +46,8 @@ local SkillPack: SkillPack = {}
 SkillPack.__index = SkillPack
 
 --// VARIABLES
-local remoteEvent = Red.Server("SkillControl")
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.SkillControl):Server()
 
 --// FUNCTIONS
 local function getSkillPack(player: Player, tempData: {}, name: string)
@@ -97,16 +97,16 @@ function SkillPack:StartSkill(name: string, ...: any)
 	if not character then return end
 
 	local skill = self:GetSkill(name)
+	local skillData = skill.Data
+	local identifier = self.Name .. "_" .. name
 
 	local tempData = self.TempData
-	local cooldownStore = tempData.CooldownStore
-	local identifier = self.Name .. "_" .. name
 	local isPlayer = not tempData.IsNpc
-	if not CallValidator.Start(tempData, cooldownStore, name, identifier) then
+	local cooldownStore = self.CooldownStore
+	if not CallValidator.Start(name, identifier, tempData, skillData, cooldownStore) then
 		if isPlayer then
-			remoteEvent:Fire(owner, "StartDidntConfirm", self.Name, name)
+			remoteEvent:Fire(owner, "StartDidntConfirmed", self.Name, name)
 		end
-		return
 	elseif isPlayer then
 		remoteEvent:Fire(owner, "StartConfirmed", self.Name, name)
 	end
@@ -117,7 +117,6 @@ function SkillPack:StartSkill(name: string, ...: any)
 		event = communicator:CreateEvent(identifier)
 	end
 
-	local skillData = skill.Data
 	local notBlockOtherSkills = skillData.NotBlockOtherSkills
 	if not notBlockOtherSkills then
 		tempData.BlockOtherSkills = true
@@ -135,6 +134,12 @@ function SkillPack:StartSkill(name: string, ...: any)
 		delaySkillEnd(activeSkills, name, identifier, duration, self, startTime)
 	end
 
+	local cooldown = skillData.Cooldown
+	local cooldownType = cooldown.Type
+	if cooldownType == "Begin" then
+		cooldownStore:Start(name)
+	end
+
 	local success, err = pcall(skillFunctions.Start, owner, character, tempData, skillData, trove, event, ...)
 	if not success then
 		warn("Start of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
@@ -149,7 +154,9 @@ function SkillPack:StartSkill(name: string, ...: any)
 		activeSkills[identifier] = nil
 		unblockOtherSkills(activeSkills, tempData)
 
-		cooldownStore:Start(name)
+		if cooldownType == "End" then
+			cooldownStore:Start(name)
+		end
 
 		if isPlayer then
 			communicator:DestroyEvent(identifier)
@@ -158,18 +165,18 @@ function SkillPack:StartSkill(name: string, ...: any)
 	end
 end
 
-function SkillPack:EndSkill(name: string)
+function SkillPack:EndSkill(name: string, ...: any)
 	local owner = self.Owner
 	local character = owner.Character
 	if not character then return end
 
 	local skill = self:GetSkill(name)
+	local skillFunctions = skill.Functions
+	local identifier = self.Name .. "_" .. name
 
 	local tempData = self.TempData
 	local activeSkills = tempData.ActiveSkills
-	local identifier = self.Name .. "_" .. name
 	local activeSkill = activeSkills[identifier]
-	local skillFunctions = skill.Functions
 	local isPlayer = not tempData.IsNpc
 	if not CallValidator.End(activeSkill, skillFunctions) then
 		if isPlayer then
@@ -194,7 +201,8 @@ function SkillPack:EndSkill(name: string)
 		event = activeSkill.Event
 	end
 
-	local success, err = pcall(skillFunctions.End, owner, character, tempData, skill.Data, activeSkill.Trove, event)
+	local skillData = skill.Data
+	local success, err = pcall(skillFunctions.End, owner, character, tempData, skillData, activeSkill.Trove, event, ...)
 	if not success then
 		warn("End of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
 		
@@ -206,7 +214,9 @@ function SkillPack:EndSkill(name: string)
 		activeSkills[identifier] = nil
 		unblockOtherSkills(activeSkills, tempData)
 
-		self.CooldownStore:Start(name)
+		if skillData.Cooldown.Type == "End" then
+			self.CooldownStore:Start(name)
+		end
 
 		if isPlayer then
 			communicator:DestroyEvent(identifier)
@@ -217,13 +227,13 @@ end
 
 function SkillPack:InterruptSkill(name: string, ignoreChecks: boolean)
 	local skill = self:GetSkill(name)
+	local skillData = skill.Data
+	local identifier = self.Name .. "_" .. name
 
+	local owner = self.Owner
 	local tempData = self.TempData
 	local activeSkills = tempData.ActiveSkills
-	local identifier = self.Name .. "_" .. name
 	local activeSkill = activeSkills[identifier]
-	local owner = self.Owner
-	local skillData = skill.Data
 	local isPlayer = not tempData.IsNpc
 	if not CallValidator.Interrupt(ignoreChecks, activeSkill, skillData) then
 		return
@@ -254,7 +264,9 @@ function SkillPack:InterruptSkill(name: string, ignoreChecks: boolean)
 	activeSkills[identifier] = nil
 	unblockOtherSkills(activeSkills, tempData)
 
-	self.CooldownStore:Start(name)
+	if skillData.Cooldown.Type == "End" then
+		self.CooldownStore:Start(name)
+	end
 
 	if isPlayer then
 		communicator:DestroyEvent(identifier)
@@ -271,15 +283,15 @@ function SkillPack:GetSkill(name: string)
 end
 
 --// EVENTS
-remoteEvent:On("Start", function(player: Player, packName: string, skillName: string, additionalData: any)
+remoteEvent:On(function(player: Player, action: string, packName: string, skillName: string, additionalData: any)
 	local tempData = TempData.Get(player)
 	local pack = getSkillPack(player, tempData, packName)
-	pack:StartSkill(skillName, additionalData)
-end)
-remoteEvent:On("End", function(player: Player, packName: string, skillName: string)
-	local tempData = TempData.Get(player)
-	local pack = getSkillPack(player, tempData, packName)
-	pack:EndSkill(skillName)
+
+	if action == "Start" then
+		pack:StartSkill(skillName, additionalData)
+	elseif action == "End" then
+		pack:EndSkill(skillName, additionalData)
+	end
 end)
 
 --// MODULE FUNCTIONS
@@ -287,13 +299,8 @@ return {
 	new = function(name: string, owner: Player | {}, tempData: {}): SkillPack
 		local storedPack = Store[name]
 		if not storedPack then
-			error("Skill pack " .. name .. " not found")
-		end
-
-		local cooldownStore = tempData.CooldownStore
-		if not cooldownStore then
-			cooldownStore = CooldownStore.new()
-			tempData.CooldownStore = cooldownStore
+			warn("Skill pack " .. name .. " not found")
+			return
 		end
 
 		local communicator
@@ -303,15 +310,17 @@ return {
 				communicator = Communicator.new(owner)
 				tempData.Communicator = communicator
 			end
-		end	
-
+		end
+		
+		local cooldownStore = CooldownStore.new()
 		local skills = {}
 		for skillName, properties in storedPack do
+			local data = properties.Data
 			skills[skillName] = {
-				Data = Utilities.DeepTableClone(properties.Data),
+				Data = Utilities.DeepTableClone(data),
 				Functions = properties.Functions,
 			}
-			cooldownStore:Add(skillName, properties.Data.Cooldown)
+			cooldownStore:Add(skillName, data.Cooldown.Duration)
 		end
 
 		return setmetatable({

@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 --// MODULES
-local SharedModules = ReplicatedStorage.Modules
+local SharedModules = ReplicatedStorage:WaitForChild("Modules")
 local Utilities = require(SharedModules.Utilities)
 
 --// TYPES
@@ -107,7 +107,7 @@ local function processBeginHold(key: Key)
 
 	for _, keybind in keyFolder do
 		if key == keybind.Key then
-			local startTime = tick()
+			local startTime = os.clock()
 			keybind.StartHoldTime = startTime
 
 			task.delay(keybind.HoldDuration, function()
@@ -141,11 +141,11 @@ local function processDoubleClick(key: Key)
 
 	for _, keybind in keyFolder do
 		if key == keybind.Key then
-			if tick() - keybind.LastClickTime <= keybind.ClickFrame then
+			if os.clock() - keybind.LastClickTime <= keybind.ClickFrame then
 				keybind.LastClickTime = 0
 				task.spawn(keybind.Function)
 			else
-				keybind.LastClickTime = tick()
+				keybind.LastClickTime = os.clock()
 			end
 		end
 	end

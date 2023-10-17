@@ -7,16 +7,17 @@ local Communicator = require(script.Parent.Communicator)
 
 --// PACKAGES
 local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
 local Trove = require(Packages.Trove)
 
 --// VARIABLES
 local player = Players.LocalPlayer
 
-local remoteEvent = Red.Client("SkillControl")
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.SkillControl):Client()
 
 local blockOtherSkills = false
 
+local confirmedFunctions = {}
 local skillPacks = {}
 local activeSkills = {}
 local requestedStart = {}
@@ -24,14 +25,12 @@ local requestedEnd = {}
 local Controller = {}
 
 --// FUNCTIONS
-local function getSkillFunction(functionName: string, skillName: string, skills: {})
-	local skill = skills[skillName]
+local function getSkillFunction(functionName: string, skill: {})
 	local functions = if skill then skill.Functions else nil
 	return if functions then functions[functionName] else nil
 end
 
-local function startCooldown(packName: string, skillName: string)
-	local pack = skillPacks[packName]
+local function startCooldown(pack:{}, skillName: string)
 	local cooldownDuration = pack.CooldownStore:Start(skillName)
 	pack.GuiList:StartCooldown(skillName, cooldownDuration)
 end
@@ -45,7 +44,7 @@ local function unblockOtherSkills()
 	blockOtherSkills = false
 end
 
---// OTHER SKILL FUNCTIONS
+--// EVENT FUNCTIONS
 local function finished(packName: string, skillName: string)
 	local identifier = packName .. "_" .. skillName
 
@@ -68,8 +67,13 @@ local function finished(packName: string, skillName: string)
 		event:Destroy()
 	end
 
-	skillPacks[packName].GuiList:Ended(identifier)
-	startCooldown(packName, skillName)
+	local pack = skillPacks[packName]
+	pack.GuiList:Ended(identifier)
+
+	local skill = pack.Skills[skillName]
+	if skill.Data.Cooldown.Type == "End" then
+		startCooldown(pack, skillName)
+	end
 
 	activeSkills[identifier] = nil
 	unblockOtherSkills()
@@ -92,7 +96,9 @@ local function interrupt(packName: string, skillName: string)
 	local event = activeSkill.Event
 	local trove = activeSkill.Trove
 
-	local interruptFunction = getSkillFunction("Interrupt", packName, skillName)
+	local pack = skillPacks[packName]
+	local skill = pack.Skills[skillName]
+	local interruptFunction = getSkillFunction("Interrupt", skill)
 	if interruptFunction then
 		local success, err = pcall(interruptFunction, player, event, trove)
 		if not success then
@@ -107,8 +113,11 @@ local function interrupt(packName: string, skillName: string)
 		end
 	end
 
-	skillPacks[packName].GuiList:Ended(identifier)
-	startCooldown(packName, skillName)
+	pack.GuiList:Ended(identifier)
+
+	if skill.Data.Cooldown.Type == "End" then
+		startCooldown(pack, skillName)
+	end
 
 	if event then
 		event:Destroy()
@@ -120,7 +129,7 @@ local function interrupt(packName: string, skillName: string)
 end
 
 --// CONFIRMED FUNCTIONS
-local function startConfirmed(packName: string, skillName: string)
+function confirmedFunctions.StartConfirmed(packName: string, skillName: string)
 	local identifier = packName .. "_" .. skillName
 	local activeSkill = requestedStart[identifier]
 	activeSkill.State = "Start"
@@ -130,7 +139,8 @@ local function startConfirmed(packName: string, skillName: string)
 	local pack = skillPacks[packName]
 	pack.GuiList:Started(skillName, identifier)
 
-	local startFunction = getSkillFunction("Start", skillName, pack.Skills)
+	local skill = pack.Skills[skillName]
+	local startFunction = getSkillFunction("Start", skill)
 	if startFunction then
 		local trove = Trove.new()
 		activeSkill.Trove = trove
@@ -144,6 +154,10 @@ local function startConfirmed(packName: string, skillName: string)
 		end
 	end
 
+	if skill.Data.Cooldown.Type == "Begin" then
+		startCooldown(pack, skillName)
+	end
+
 	if activeSkill.HasEnd then
 		activeSkill.State = "WaitingForEnd"
 	else
@@ -151,7 +165,7 @@ local function startConfirmed(packName: string, skillName: string)
 	end
 end
 
-local function endConfirmed(packName: string, skillName: string)
+function confirmedFunctions.EndConfirmed(packName: string, skillName: string)
 	local identifier = packName .. "_" .. skillName
 	requestedEnd[identifier] = nil
 
@@ -159,7 +173,7 @@ local function endConfirmed(packName: string, skillName: string)
 	activeSkill.State = "End"
 
 	local pack = skillPacks[packName]
-	local endFunction = getSkillFunction("End", skillName, pack.Skills)
+	local endFunction = getSkillFunction("End", pack.Skills[skillName])
 	if endFunction then
 		local success, err = pcall(endFunction, player, activeSkill.Event, activeSkill.Trove)
 		if not success then
@@ -170,11 +184,11 @@ local function endConfirmed(packName: string, skillName: string)
 	activeSkill.State = "WaitingForFinish"
 end
 
-local function startDidntConfirm(packName: string, skillName: string)
+function confirmedFunctions.StartDidntConfirm(packName: string, skillName: string)
 	requestedStart[packName .. "_" .. skillName] = nil
 end
 
-local function endDidntConfirm(packName: string, skillName: string)
+function confirmedFunctions.EndDidntConfirm(packName: string, skillName: string)
 	requestedEnd[packName .. "_" .. skillName] = nil
 end
 
@@ -191,12 +205,15 @@ function Controller.Start(packName: string, skillName: string)
 
 	local pack = skillPacks[packName]
 	local skill = pack.Skills[skillName]
+	if not skill then
+		return
+	end
 
 	if pack.CooldownStore:IsOnCooldown(skillName) then
 		return
 	end
 
-	local prestartFunction = getSkillFunction("Prestart", packName, skillName)
+	local prestartFunction = getSkillFunction("Prestart", skill)
 	local result
 	if prestartFunction then
 		result = prestartFunction()
@@ -253,13 +270,15 @@ Controller.SkillPacks = skillPacks
 Controller.ActiveSkills = activeSkills
 
 --// EVENTS
-remoteEvent:On("StartConfirmed", startConfirmed)
-remoteEvent:On("EndConfirmed", endConfirmed)
-
-remoteEvent:On("StartDidntConfirm", startDidntConfirm)
-remoteEvent:On("EndDidntConfirm", endDidntConfirm)
-
-remoteEvent:On("Finished", finished)
-remoteEvent:On("Interrupt", interrupt)
+remoteEvent:On(function(action: string, packName: string, skillName: string)
+	local func = confirmedFunctions[action]
+	if func then
+		func(packName, skillName)
+	elseif action == "Interrupt" then
+		interrupt(packName, skillName)
+	elseif action == "Finished" then
+		finished(packName, skillName)
+	end
+end)
 
 return Controller

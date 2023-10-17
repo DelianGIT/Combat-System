@@ -9,11 +9,18 @@ local Packages = ReplicatedStorage.Packages
 local Trove = require(Packages.Trove)
 
 --// VARIABLES
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.VfxControl):Client()
+
 local VfxLibrary = {}
 
 --// MODULE FUNCTIONS
-function VfxLibrary.Start(packName: string, vfxName: string, character: Model, ...: any): ()
+function VfxLibrary.Start(startTime: number, timeout: number, packName: string, vfxName: string, character: Model, ...: any): ()
 	if not character then
+		return
+	end
+
+	if timeout and os.time() - startTime >= timeout then
 		return
 	end
 
@@ -34,5 +41,8 @@ function VfxLibrary.Start(packName: string, vfxName: string, character: Model, .
 		trove:Clean()
 	end
 end
+
+--// EVENTS
+remoteEvent:On(VfxLibrary.Start)
 
 return VfxLibrary

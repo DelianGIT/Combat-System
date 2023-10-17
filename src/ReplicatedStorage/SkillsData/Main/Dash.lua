@@ -1,3 +1,0 @@
-return {
-	Cooldown = 1
-}

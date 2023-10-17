@@ -4,25 +4,22 @@ local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 --// MODULES
 local ClientModules = ReplicatedFirst:WaitForChild("Modules")
-
---// PACKAGES
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Red = require(Packages:WaitForChild("Red"))
+local SkillLibrary = require(ClientModules:WaitForChild("SkillLibrary"))
 
 --// VARIABLES
-local remoteEvent = Red.Client("LoadingControl")
+local remoteEvents = ReplicatedStorage:WaitForChild("Events")
+local remoteEvent = require(remoteEvents:WaitForChild("LoadingControl")):Client()
 
-local loadingStages = {
-	"Client",
-	"SkillPacks",
-}
+local eventFunctions = {}
+local stageCount = 2
 
 --// FUNCTIONS
 local function completeLoadingStage(stageName: string)
-	table.remove(loadingStages, table.find(loadingStages, stageName))
+	eventFunctions[stageName] = nil
+	stageCount -= 1
 
-	if #loadingStages == 0 then
-		print("Data loaded")
+	if stageCount == 0 then
+		print("Client loaded")
 		remoteEvent:Fire("LoadCharacter")
 	end
 end
@@ -38,16 +35,19 @@ end
 completeLoadingStage("Client")
 print("Client started")
 
---// EVENTS
-local SkillLibrary = require(ClientModules:WaitForChild("SkillLibrary"))
-
-remoteEvent:On("SkillPacks", function(packs: { [number]: string })
+--// EVENT FUNCTIONS
+function eventFunctions.SkillPacks(packs: { [number]: string })
 	for _, packName in packs do
 		SkillLibrary.AddSkillPack(packName)
 	end
 
 	completeLoadingStage("SkillPacks")
 	print("Skill packs loaded")
+end
+
+--// EVENTS
+remoteEvent:On(function(stageName: string, ...: any)
+	eventFunctions[stageName](...)
 end)
 
 remoteEvent:Fire("ReadyForData")

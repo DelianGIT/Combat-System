@@ -4,36 +4,47 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// CONFIG
 local SKILLS_FOLDER = ReplicatedFirst.Skills
-local SHARED_DATA_FOLDER = ReplicatedStorage.SkillsData
+local SHARED_DATA_FOLDER = ReplicatedStorage.SharedSkillsData
 
 --// VARIABLES
-local Store = {}
+local store = {}
 
 --// FUNCTIONS
-local function importData(dataFolder: {}, dataToImport: {})
-	for key, value in dataToImport do
-		dataFolder[key] = value
+local function importData(folder: {}, data: {})
+	for key, value in data do
+		folder[key] = value
 	end
 end
 
 --// REQUIRING SKILLS
-for _, folder in SKILLS_FOLDER:GetChildren() do
-	local pack = {}
-	local sharedData = SHARED_DATA_FOLDER[folder.Name]
+for _, dataModule in SKILLS_FOLDER:GetChildren() do
+	local packName = dataModule.Name
+	local data = require(dataModule)
+	local sharedData = require(SHARED_DATA_FOLDER[packName])
 
-	for _, module in folder:GetChildren() do
-		local success, result = pcall(require, module)
-		if not success then
-			warn("Skill module " .. folder.Name .. "_" .. module.Name .. " threw an error: " .. result)
-		else
-			local sharedSkillData = require(sharedData[module.Name])
-			importData(result.Data, sharedSkillData)
-	
-			pack[module.Name] = result
+	local pack = {}
+	for skillName, skillData in data do
+		local skillModule = dataModule:FindFirstChild(skillName)
+
+		local result
+		if skillModule then
+			local success
+			success, result = pcall(require, skillModule)
+			if not success then
+				warn("Skill module " .. packName .. "_" .. skillModule.Name .. " threw an error: " .. result)
+				continue
+			end
 		end
+
+		importData(skillData, sharedData[skillName])
+
+		pack[skillName] = {
+			Data = skillData,
+			Functions = result
+		}
 	end
 
-	Store[folder.Name] = pack
+	store[packName] = pack
 end
 
-return Store
+return store

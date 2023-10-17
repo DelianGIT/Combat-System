@@ -2,17 +2,33 @@
 local CallValidator = {}
 
 --// MODULE FUNCTIONS
-function CallValidator.Start(tempData: {}, cooldownStore: {}, skillName: string, identifier: string)
+function CallValidator.Start(skillName: string, identifier: string, tempData: {}, skillData: {}, cooldownStore: {})
 	if cooldownStore:IsOnCooldown(skillName) then
 		return
 	end
-	
+
 	if tempData.BlockOtherSkills or tempData.ActiveSkills[identifier] then
 		return
 	end
 
 	if tempData.CantUseSkills then
 		return
+	end
+	
+	local requirements = skillData.Requirements
+	if requirements then
+		for key, value in requirements do
+			if type(key) == "number" then
+				local tempDataValue = tempData[key]
+				if not tempDataValue or tempDataValue < value then
+					return
+				end
+			else
+				if tempData[key] ~= value then
+					return
+				end
+			end
+		end
 	end
 	
 	return true

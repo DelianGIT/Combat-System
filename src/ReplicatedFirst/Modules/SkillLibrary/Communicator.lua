@@ -1,10 +1,6 @@
 --// SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
---// PACKAGES
-local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
-
 --// TYPES
 type Event = {
 	Connections: {[string]: (any) -> ()},
@@ -21,13 +17,14 @@ local Event: Event = {}
 Event.__index = Event
 
 --// VARIABLES
-local remoteEvent = Red.Client("SkillCommunication")
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.SkillCommunication):Client()
 
 local events = {}
 
 --// EVENT FUNCTIONS
 function Event:Fire(action: string, ...: any)
-	remoteEvent:Fire("", self.Name, action, ...)
+	remoteEvent:Fire(self.Name, action, ...)
 end
 
 function Event:Connect(action: string, functionToConnect: (any) -> ())
@@ -60,7 +57,7 @@ function Event:Destroy()
 end
 
 --// EVENTS
-remoteEvent:On("", function(name: string, action: string, ...: any)
+remoteEvent:On(function(name: string, action: string, ...: any)
 	local event = events[name]
 	if not event then
 		error("Event " .. name .. " not found")

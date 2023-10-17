@@ -3,10 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
---// PACKAGES
-local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
-
 --// VARIABLES
 local player = Players.LocalPlayer
 
@@ -14,7 +10,8 @@ local blockIndicator = ReplicatedStorage.Gui.BlockIndicator
 local background = blockIndicator.Background
 local bar = background.Bar
 
-local remoteEvent = Red.Client("BlockIndicator")
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.BlockIndicator):Client()
 
 local mainColor = Color3.new(1, 1, 1)
 local perfectBlockColor = Color3.new(0.5, 0, 1)
@@ -32,8 +29,10 @@ local breakBlockTweenInfo2 = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.Ea
 local durability = 0
 local maxDurability = 0
 
---// FUNCTIONS
-local function enable(blockDurability: number)
+local eventFunctions = {}
+
+--// EVENT FUNCTIONS
+function eventFunctions.Enable(blockDurability: number)
 	local character = player.Character
 	if not character then return end
 
@@ -51,7 +50,7 @@ local function enable(blockDurability: number)
 	}):Play()
 end
 
-local function disable()
+function eventFunctions.Disable()
 	local character = player.Character
 	if not character then return end
 
@@ -66,12 +65,12 @@ local function disable()
 	tween:Play()
 end
 
-local function changeDurability(value: number)
+function eventFunctions.ChangeDurability(value: number)
 	durability = value
 	bar.Size = UDim2.fromScale(1, durability / maxDurability)
 end
 
-local function perfectBlock()
+function eventFunctions.PerfectBlock()
 	TweenService:Create(bar, perfectBlockTweenInfo, {
 		BackgroundColor3 = perfectBlockColor,
 	}):Play()
@@ -80,8 +79,8 @@ local function perfectBlock()
 	}):Play()
 end
 
-local function blockBreak()
-	changeDurability(0)
+function eventFunctions.BlockBreak()
+	eventFunctions.ChangeDurability(0)
 
 	TweenService:Create(bar, breakBlockTweenInfo1, {
 		BackgroundColor3 = breakBlockColor,
@@ -102,10 +101,8 @@ local function blockBreak()
 end
 
 --// EVENTS
-remoteEvent:On("Enable", enable)
-remoteEvent:On("Disable", disable)
-remoteEvent:On("ChangeDurability", changeDurability)
-remoteEvent:On("PerfectBlock", perfectBlock)
-remoteEvent:On("BlockBreak", blockBreak)
+remoteEvent:On(function(action: string, ...: any)
+	eventFunctions[action](...)
+end)
 
 return true

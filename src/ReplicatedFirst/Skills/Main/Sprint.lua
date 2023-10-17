@@ -7,14 +7,7 @@ local camera = workspace.CurrentCamera
 local startTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local endTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
---// SKILL
-local data = {
-	InputKey = Enum.KeyCode.W,
-	InputState = "DoubleClick",
-	ClickFrame = 0.25,
-	HasEnd = true
-}
-
+--// SKILL FUNCTIONS
 local functions = {
 	Start = function()
 		TweenService:Create(camera, startTweenInfo, {
@@ -30,7 +23,4 @@ local functions = {
 }
 functions.Interrupt = functions.End
 
-return {
-	Data = data,
-	Functions = functions
-}
+return functions

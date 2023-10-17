@@ -14,8 +14,7 @@ type Npc = {
 	Name: string,
 	Count: number,
 	Character: Model,
-	TempData: {},
-	IsNpc: true
+	TempData: {}
 }
 
 --// VARIABLES
@@ -33,19 +32,6 @@ TempData.SetTemplate({
 })
 
 --// FUNCTIONS
-local function stopActiveSkills(tempData: {})
-	local activeSkills = tempData.ActiveSkills
-	local skillPacks = tempData.SkillPacks
-
-	for identifier, properties in activeSkills do
-		local skillName = string.split(identifier, "_")[2]
-		local pack = skillPacks[properties.PackName]
-		task.spawn(function()
-			pack:InterruptSkill(skillName, true)
-		end)
-	end
-end
-
 local function getArray(npcName: string)
 	local array = spawnedNpc[npcName]
 	if not array then
@@ -65,6 +51,19 @@ local function getFolder(npcName: string)
 	return folder
 end
 
+local function stopActiveSkills(tempData: {})
+	local activeSkills = tempData.ActiveSkills
+	local skillPacks = tempData.SkillPacks
+
+	for identifier, properties in activeSkills do
+		local skillName = string.split(identifier, "_")[2]
+		local pack = skillPacks[properties.PackName]
+		task.spawn(function()
+			pack:InterruptSkill(skillName, true)
+		end)
+	end
+end
+
 --// MODULE FUNCTIONS
 function NpcMaker.Spawn(name: string, cframe: CFrame): Npc
 	local data = Store[name]
@@ -74,8 +73,8 @@ function NpcMaker.Spawn(name: string, cframe: CFrame): Npc
 	array.Count = count
 
 	local character, humanoid = CharacterMaker.Make(data, cframe)
-	local newName = name .. "_" .. count
-	character.Name = newName
+	local identifier = name .. "_" .. count
+	character.Name = identifier
 
 	local tempData = TempData.Create(character)
 	local npc = {
@@ -91,7 +90,7 @@ function NpcMaker.Spawn(name: string, cframe: CFrame): Npc
 	end)
 
 	character.Parent = getFolder(name)
-	array[newName] = npc
+	array[identifier] = npc
 
 	local spawnedFunction = data.SpawnedFunction
 	if spawnedFunction then

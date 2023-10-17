@@ -4,92 +4,132 @@ local ServerStorage = game:GetService("ServerStorage")
 --// MODULES
 local ServerModules = ServerStorage.Modules
 local HitboxMaker = require(ServerModules.HitboxMaker)
-local Damager = require(ServerModules.Damager)
-local KnockbackController = require(ServerModules.KnockbackController)
+local DamageHandler = require(ServerModules.DamageHandler)
+local KnockbackManager = DamageHandler.KnockbackManager
 local VfxController = require(ServerModules.VfxController)
 
 --// CONFIG
-local PUNCH_FRAME = 1
+local COMBO_FRAME = 1
 local HITBOX_SIZE = Vector3.new(5, 5, 5)
-local KNOCKBACK_FORCE = 10
-local LAST_KNOCKBACK_FORCE = 50
+local KNOCKBACK_FORCE = Vector3.one * 1e5
 
 --// FUNCTIONS
-local function punch(player: Player | {}, character: Model, tempData: {}, skillData: {})
+local function punch(player: Player | {}, character: Model, tempData: {})
 	local humanoidRootPart = character.HumanoidRootPart
 	local rootCFrame = humanoidRootPart.CFrame
-
-	local cframe = rootCFrame + rootCFrame.LookVector * 3
+	local lookVector = rootCFrame.LookVector
+	local cframe = rootCFrame + lookVector * 3
 
 	local isHitted
-	local knockbackDirection = rootCFrame.LookVector * KNOCKBACK_FORCE
 	HitboxMaker.SpatialQuery({ character }, cframe, HITBOX_SIZE, false, function(hit: Model)
-		local result = Damager.Deal(player, character, tempData, hit, skillData.DamageConfig)
-		if result == "Hit" then
-			isHitted = true
-			KnockbackController.Apply(hit, 0.15, knockbackDirection)
-			VfxController.Start("Main", "PunchHit", hit)
-		end
-	end)
+		DamageHandler.Deal(player, character, tempData, hit, {
+			Amount = 5,
+			MutualKnockback = true,
 
-	if isHitted then
-		KnockbackController.Apply(character, 0.15, rootCFrame.LookVector * KNOCKBACK_FORCE)
-	end
+			Knockback = {
+				FromPoint = false,
+				Force = KNOCKBACK_FORCE,
+				Length = 10,
+				Duration = 0.15,
+				Priority = 1,
+				Vector = lookVector
+			},
+
+			Block = {
+				Blockable = true,
+				BlockBreakable = false,
+				PerfectBlockable = true,
+				PerfectBlockFrame = 0.5
+			},
+
+			Stun = {
+				BlockSkills = true,
+				Duration = 0.5,
+				JumpPower = 0,
+				WalkSpeed = 0,
+				Priority = 1,
+			},
+
+			HitFunction = function()
+				isHitted = true
+				VfxController.Start(100, 3, "Main", "PunchHit", hit)
+			end
+		})
+	end)
 
 	return isHitted
 end
 
-local function lastPunch(player: Player | {}, character: Model, tempData: {}, skillData: {})
+local function lastPunch(player: Player | {}, character: Model, tempData: {})
 	local humanoidRootPart = character.HumanoidRootPart
 	local rootCFrame = humanoidRootPart.CFrame
-
-	local cframe = rootCFrame + rootCFrame.LookVector * 3
+	local lookVector = rootCFrame.LookVector
+	local cframe = rootCFrame + lookVector * 3
 
 	local isHitted
-	local knockbackDirection = rootCFrame.LookVector * LAST_KNOCKBACK_FORCE
 	HitboxMaker.SpatialQuery({ character }, cframe, HITBOX_SIZE, false, function(hit: Model)
-		local result = Damager.Deal(player, character, tempData, hit, skillData.DamageConfig)
-		if result == "Hit" then
-			isHitted = true
-			KnockbackController.Apply(hit, 0.15, knockbackDirection)
-			VfxController.Start("Main", "PunchHit", hit)
-		end
+		DamageHandler.Deal(player, character, tempData, hit, {
+			Amount = 15,
+
+			Knockback = {
+				FromPoint = false,
+				Force = KNOCKBACK_FORCE,
+				Length = 50,
+				Duration = 0.15,
+				Priority = 1,
+				Vector = lookVector
+			},
+
+			Block = {
+				Blockable = true,
+				BlockBreakable = false,
+				PerfectBlockable = true,
+				PerfectBlockFrame = 0.5
+			},
+
+			Stun = {
+				BlockSkills = true,
+				Duration = 0.5,
+				JumpPower = 0,
+				WalkSpeed = 0,
+				Priority = 1,
+			},
+
+			HitFunction = function()
+				isHitted = true
+				VfxController.Start(100, 3, "Main", "PunchHit", hit)
+			end
+		})
 	end)
 
 	if isHitted then
-		KnockbackController.Apply(character, 0.15, rootCFrame.LookVector * KNOCKBACK_FORCE)
+		KnockbackManager.Apply(character, tempData, {
+			FromPoint = false,
+			Force = KNOCKBACK_FORCE,
+			Length = 10,
+			Duration = 0.15,
+			Priority = 1,
+			Vector = lookVector
+		})
 	end
 end
 
---// SKILL
-local damageConfig = Damager.MakeConfig()
-damageConfig.Amount = 5
-
-local data = {
-	DamageConfig = damageConfig,
-	Combo = 1,
-	PunchTime = math.huge
-}
-
-local functions = {
-	Start = function(player: Player | {}, character: Model, tempData: {}, skillData: {}, _, _, _: boolean)
-		if tick() - skillData.PunchTime > PUNCH_FRAME then
+--// SKILL FUNCTIONS
+return {
+	Start = function(player: Player | {}, character: Model, tempData: {}, skillData: {})
+		if os.clock() - skillData.PunchTime > COMBO_FRAME then
 			skillData.Combo = 1
-			punch(player, character, tempData, skillData)
+			punch(player, character, tempData)
 		elseif skillData.Combo == 5 then
 			skillData.Combo = 1
-			lastPunch(player, character, tempData, skillData)
+			lastPunch(player, character, tempData)
 		else
-			local isHitted = punch(player, character, tempData, skillData)
+			local isHitted = punch(player, character, tempData)
 			if isHitted then
+				print(1)
 				skillData.Combo += 1
 			end
 		end
-		skillData.PunchTime = tick()
+		skillData.PunchTime = os.clock()
 	end
-}
-
-return {
-	Data = data,
-	Functions = functions
 }

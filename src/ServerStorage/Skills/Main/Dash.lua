@@ -7,10 +7,10 @@ local BodyMover = require(ServerModules.BodyMover)
 
 --// VARIABLES
 local zeroVector = Vector3.zero
-local maxForce = Vector3.new(9e10, 0, 9e10)-- * math.huge
+local maxForce = Vector3.new(9e10, 0, 9e10)
 
---// SKILL
-local functions = {
+--// SKILL FUNCTIONS
+return {
 	Start = function(_, character: Model)
 		local humanoid = character.Humanoid
 		local moveDirection = humanoid.MoveDirection
@@ -24,9 +24,4 @@ local functions = {
 			bodyVelocity:Destroy()
 		end)
 	end
-}
-
-return {
-	Data = {},
-	Functions = functions,
 }

@@ -4,28 +4,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --// MODULES
 local SkillPack = require(script.SkillPack)
 
---// PACKAGES
-local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
-
 --// VARIABLES
-local remoteEvent = Red.Server("SkillLibrary")
-
 local SkillLibrary = {}
 
 --// MODULE FUNCTIONS
-function SkillLibrary.GiveSkillPack(name: string, player: Player, tempData: {}, dontFireEvent: boolean)
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.SkillLibrary):Server()
+
+function SkillLibrary.GiveSkillPack(name: string, owner: Player | {}, tempData: {}, dontFireEvent: boolean?)
 	local existingPacks = tempData.SkillPacks
 	if existingPacks[name] then
-		warn("Player " .. player.Name .. " already has skill pack " .. name)
+		warn("Player " .. owner.Name .. " already has skill pack " .. name)
 		return
 	end
 
-	local pack = SkillPack.new(name, player, tempData)
+	local pack = SkillPack.new(name, owner, tempData)
 	if not pack then return end
 
 	if not tempData.IsNpc and not dontFireEvent then
-		remoteEvent:Fire(player, "Add", name)
+		remoteEvent:Fire(owner, "AddSkillPack", name)
 	end
 
 	existingPacks[name] = pack
@@ -50,7 +47,7 @@ function SkillLibrary.TakeSkillPack(name: string, player: Player, tempData: {})
 	end
 
 	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "Remove", name)
+		remoteEvent:Fire(player, "RemoveSkillPack", name)
 	end
 
 	existingPacks[name] = nil

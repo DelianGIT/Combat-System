@@ -16,13 +16,17 @@ end
 
 function CooldownStore:Start(action: string)
 	local cooldown = self[action]
-	cooldown[1] = tick()
+	cooldown[1] = os.clock()
 	return cooldown[2]
 end
 
 function CooldownStore:IsOnCooldown(action: string)
 	local cooldown = self[action]
-	return if cooldown then tick() - cooldown[1] < cooldown[2] else false
+	if cooldown and os.clock() - cooldown[1] < cooldown[2] then
+		return true
+	else
+		return false
+	end
 end
 
 return {

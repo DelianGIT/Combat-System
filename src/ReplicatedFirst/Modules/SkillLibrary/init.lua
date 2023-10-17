@@ -9,21 +9,19 @@ local Keybind = require(ClientModules.Keybind)
 
 local SharedModules = ReplicatedStorage.Modules
 local CooldownStore = require(SharedModules.CooldownStore)
+local Utilities = require(SharedModules.Utilities)
 
 local Store = require(script.Store)
 local Controller = require(script.Controller)
 local GuiList = require(script.GuiList)
-
---// PACKAGES
-local Packages = ReplicatedStorage.Packages
-local Red = require(Packages.Red)
 
 --// VARIABLES
 local player = Players.LocalPlayer
 
 local skillPacksItems = ReplicatedStorage.Items.SkillPacks
 
-local remoteEvent = Red.Client("SkillLibrary")
+local remoteEvents = ReplicatedStorage.Events
+local remoteEvent = require(remoteEvents.SkillLibrary):Client()
 
 local skillPacks = Controller.SkillPacks
 local SkillLibrary = {}
@@ -67,18 +65,22 @@ local function giveSkillPackItem(backpack: Backpack, packName: string, guiList: 
 	item.Parent = backpack
 end
 
-local function makeKeybinds(packName: string, skillName: string, skillData: {}, guiList: {})
-	local inputKey = skillData.InputKey
 
-	local externalArg = skillData.HoldDuration or skillData.ClickFrame
+local function makeKeybinds(packName: string, skillName: string, skillData: {}, guiList: {})
+	local keybindInfo = skillData.Keybind
+	local inputKey = keybindInfo.Key
+	local externalArg = keybindInfo.HoldDuration or keybindInfo.ClickFrame
+
+	guiList:AddSkill(skillName, inputKey)
+
 	local beginKeybind
 	if externalArg then
-		beginKeybind = Keybind[skillData.InputState](skillName, inputKey, externalArg, function()
+		beginKeybind = Keybind[keybindInfo.State](skillName, inputKey, externalArg, function()
 			Controller.Start(packName, skillName)
 			guiList:Pressed(skillName)
 		end)
 	else
-		beginKeybind = Keybind[skillData.InputState](skillName, inputKey, function()
+		beginKeybind = Keybind[keybindInfo.State](skillName, inputKey, function()
 			Controller.Start(packName, skillName)
 			guiList:Pressed(skillName)
 		end)
@@ -112,12 +114,17 @@ function SkillLibrary.AddSkillPack(name: string)
 
 	local storedPack = Store[name]
 	local keybinds = {}
-
+	local skills = {}
 	for skillName, properties in storedPack do
-		local skillData = properties.Data
-		guiList:AddSkill(skillName, skillData.InputKey)
+		local skillData = Utilities.DeepTableClone(properties.Data)
+		local skill = {
+			Data = skillData,
+			Functions = properties.Functions
+		}
+		skills[skillName] = skill
+
+		cooldownStore:Add(skillName, skillData.Cooldown.Duration)
 		keybinds[skillName] = makeKeybinds(name, skillName, skillData, guiList)
-		cooldownStore:Add(skillName, skillData.Cooldown)
 	end
 
 	if player.Character then
@@ -128,7 +135,7 @@ function SkillLibrary.AddSkillPack(name: string)
 		Keybinds = keybinds,
 		CooldownStore = cooldownStore,
 		GuiList = guiList,
-		Skills = storedPack,
+		Skills = skills,
 	}
 end
 
@@ -149,8 +156,9 @@ function SkillLibrary.RemoveSkillPack(name: string)
 end
 
 --// EVENTS
-remoteEvent:On("Add", SkillLibrary.AddSkillPack)
-remoteEvent:On("Remove", SkillLibrary.RemoveSkillPack)
+remoteEvent:On(function(action: string, packName: string)
+	SkillLibrary[action](packName)
+end)
 
 player.CharacterAdded:Connect(function()
 	local backpack = player.Backpack
