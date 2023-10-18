@@ -38,7 +38,7 @@ local function loadData(animationTrack: AnimationTrack, data: AnimationData)
 end
 
 --// MODULE FUNCTIONS
-function AnimationManager.Play(target: Target, animation: Animation | AnimationTrack, data: AnimationData)
+function AnimationManager.Load(target: Target, animation: Animation | AnimationTrack, data: AnimationData)
 	local animator = getAnimator(target)
 	if not animator then
 		return
@@ -49,13 +49,19 @@ function AnimationManager.Play(target: Target, animation: Animation | AnimationT
 		animationTrack = animator:LoadAnimation(animation)
 	end
 
-	loadData(animationTrack, data)
+	if data then
+		loadData(animationTrack, data)
+	end
 
 	animationTrack.Ended:Connect(function()
 		animationTrack:Destroy()
 	end)
 
 	return animationTrack
+end
+
+function AnimationManager.Play(target: Target, animation: Animation | AnimationTrack, data: AnimationData)
+	AnimationManager.Load(target, animation, data):Play()
 end
 
 function AnimationManager.Stop(target: Target, animation: AnimationTrack | Animation | string)

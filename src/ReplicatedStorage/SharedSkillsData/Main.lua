@@ -10,7 +10,7 @@ return {
 
 	Dash = {
 		Cooldown = {
-			Duration = 1,
+			Duration = 0.5,
 			Type = "End"
 		}
 	},
@@ -24,7 +24,7 @@ return {
 
 	Punch = {
 		Cooldown = {
-			Duration = 0.5,
+			Duration = 0.35,
 			Type = "End"
 		}
 	}

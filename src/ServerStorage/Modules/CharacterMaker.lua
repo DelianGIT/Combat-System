@@ -73,7 +73,7 @@ local function prepareHumanoid(player: Player, tempData: {}, character: Model)
 		JumpPowerManager.Cancel(character, tempData)
 		WalkSpeedManager.Cancel(character, tempData)
 		StunManager.Cancel(character, tempData)
-		KnockbackManager.Cancel(tempData)
+		KnockbackManager.Cancel(character, tempData)
 
 		CharacterMaker.Make(player, tempData)
 	end)

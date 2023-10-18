@@ -59,10 +59,9 @@ local function getSkillPack(player: Player, tempData: {}, name: string)
 	end
 end
 
-local function makeActiveSkill(packName: string, trove: {}, event: Communicator.Event?, notBlockOtherSkills: boolean)
+local function makeActiveSkill(trove: {}, event: Communicator.Event?, notBlockOtherSkills: boolean)
 	local startTime = tick()
 	local activeSkill = {
-		PackName = packName,
 		State = "Start",
 		StartTime = startTime,
 		Trove = trove,
@@ -105,8 +104,9 @@ function SkillPack:StartSkill(name: string, ...: any)
 	local cooldownStore = self.CooldownStore
 	if not CallValidator.Start(name, identifier, tempData, skillData, cooldownStore) then
 		if isPlayer then
-			remoteEvent:Fire(owner, "StartDidntConfirmed", self.Name, name)
+			remoteEvent:Fire(owner, "StartDidntConfirm", self.Name, name)
 		end
+		return
 	elseif isPlayer then
 		remoteEvent:Fire(owner, "StartConfirmed", self.Name, name)
 	end
@@ -123,7 +123,7 @@ function SkillPack:StartSkill(name: string, ...: any)
 	end
 
 	local trove = Trove.new()
-	local startTime, activeSkill = makeActiveSkill(self.Name, trove, event, notBlockOtherSkills)
+	local startTime, activeSkill = makeActiveSkill(trove, event, notBlockOtherSkills)
 	local activeSkills = tempData.ActiveSkills
 	activeSkills[identifier] = activeSkill
 
@@ -145,8 +145,14 @@ function SkillPack:StartSkill(name: string, ...: any)
 		warn("Start of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
 		
 		local humanoid = character.Humanoid
-		if owner.Parent == Players and (not humanoid or humanoid.Health >= 0) then
-			self:InterruptSkill(name, true)
+		if humanoid.Health >= 0 then
+			if isPlayer then
+				if owner.Parent == Players then
+					self:InterruptSkill(name, true)
+				end
+			else
+				self:InterruptSkill(name, true)
+			end
 		end
 	elseif hasEnd then
 		activeSkill.State = "ReadyToEnd"
@@ -207,8 +213,14 @@ function SkillPack:EndSkill(name: string, ...: any)
 		warn("End of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
 		
 		local humanoid = character.Humanoid
-		if owner.Parent == Players and (not humanoid or humanoid.Health >= 0) then
-			self:InterruptSkill(name, true)
+		if humanoid.Health >= 0 then
+			if isPlayer then
+				if owner.Parent == Players then
+					self:InterruptSkill(name, true)
+				end
+			else
+				self:InterruptSkill(name, true)
+			end
 		end
 	else
 		activeSkills[identifier] = nil

@@ -35,8 +35,8 @@ local function startCooldown(pack:{}, skillName: string)
 	pack.GuiList:StartCooldown(skillName, cooldownDuration)
 end
 
-local function unblockOtherSkills()
-	for _, properties in activeSkills do
+local function unblockOtherSkills(array: {})
+	for _, properties in array do
 		if not properties.NotBlockOtherSkills then
 			return
 		end
@@ -76,7 +76,7 @@ local function finished(packName: string, skillName: string)
 	end
 
 	activeSkills[identifier] = nil
-	unblockOtherSkills()
+	unblockOtherSkills(activeSkills)
 end
 
 local function interrupt(packName: string, skillName: string)
@@ -124,8 +124,8 @@ local function interrupt(packName: string, skillName: string)
 	end
 
 	activeSkills[identifier] = nil
-	requestedEnd[identifier] = false
-	unblockOtherSkills()
+	requestedEnd[identifier] = nil
+	unblockOtherSkills(activeSkills)
 end
 
 --// CONFIRMED FUNCTIONS
@@ -186,10 +186,12 @@ end
 
 function confirmedFunctions.StartDidntConfirm(packName: string, skillName: string)
 	requestedStart[packName .. "_" .. skillName] = nil
+	unblockOtherSkills(requestedStart)
 end
 
 function confirmedFunctions.EndDidntConfirm(packName: string, skillName: string)
 	requestedEnd[packName .. "_" .. skillName] = nil
+	unblockOtherSkills(requestedEnd)
 end
 
 --// MODULE FUNCTIONS

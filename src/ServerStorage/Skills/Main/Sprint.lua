@@ -6,10 +6,10 @@ local ServerModules = ServerStorage.Modules
 local WalkSpeedManager = require(ServerModules.DamageHandler).WalkSpeedManager
 
 --// SKILL FUNCTIONS
-return {
+local functions = {
 	Start = function(_, character: Model, tempData: {})
 		WalkSpeedManager.Change(character, tempData, {
-			Priority = 1,
+			Priority = 0,
 			Value = character.Humanoid.WalkSpeed * 1.5
 		})
 	end,
@@ -18,3 +18,6 @@ return {
 		WalkSpeedManager.Cancel(character, tempData)
 	end
 }
+functions.Interrupt = functions.End
+
+return functions

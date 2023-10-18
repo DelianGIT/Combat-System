@@ -16,6 +16,7 @@ local KnockbackManager = require(script.KnockbackManager)
 type Config = {
 	Amount: number,
 
+	Interruptable: boolean,
 	MutualKnockback: boolean,
 
 	Knockback: KnockbackManager.Config,
@@ -80,6 +81,15 @@ function DamageHandler.Deal(aPlayer: Model, aCharacter: Model, aTempData: {}, tC
 	local stun = config.Stun
 	if stun then
 		StunManager.Apply(tCharacter, tTempData, stun)
+	end
+
+	if config.Interruptable then
+		local skillPacks = tTempData.SkillPacks
+		for identifier, _ in tTempData.ActiveSkills do
+			local packName, skillName = table.unpack(string.split(identifier, "_"))
+			local pack = skillPacks[packName]
+			pack:InterruptSkill(skillName)
+		end
 	end
 
 	local hitFunction = config.HitFunction

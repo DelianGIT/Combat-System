@@ -1,5 +1,6 @@
 --// SERVICES
 local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --// MODULES
 local ServerModules = ServerStorage.Modules
@@ -23,8 +24,39 @@ type Knockback = {
 	BodyVelocity: BodyVelocity,
 }
 
+--// CONFIG
+local VISUALIZATION = false
+local MAX_FORCE = Vector3.one * math.huge
+
 --// VARIABLES
+local visualizationPart = ReplicatedStorage.Other.KnockbackVisualization
+
 local KnockbackManager = {}
+
+--// FUNCTIONS
+function addVisualization(character: Model, direction: Vector3)
+	local humanoidRootPart = character.HumanoidRootPart
+	local rootPosition = humanoidRootPart.Position
+	local magnitude = direction.Magnitude
+
+	local visualization = visualizationPart:Clone()
+	visualization.Size = Vector3.new(0.5, 0.5, magnitude)
+	visualization.CFrame = CFrame.lookAt(rootPosition, rootPosition + direction)
+	visualization.CFrame += visualization.CFrame.LookVector * magnitude / 2
+	visualization.Parent = character
+	
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = humanoidRootPart
+	weld.Part1 = visualization
+	weld.Parent = visualization
+end
+
+function removeVisualization(character: Model)
+	local visualization = character:FindFirstChild("KnockbackVisualization")
+	if visualization then
+		visualization:Destroy()
+	end
+end
 
 --// MODULE FUNCTIONS
 function KnockbackManager.MakeConfig(): Config
@@ -50,10 +82,9 @@ function KnockbackManager.Apply(character: Model, tempData: {}, config: Config):
 		bodyVelocity = existingKnockback.BodyVelocity
 	else
 		bodyVelocity = BodyMover.BodyVelocity(character)
-		bodyVelocity.P = math.huge
 	end
 	bodyVelocity.Velocity = direction
-	bodyVelocity.MaxForce = config.Force
+	bodyVelocity.MaxForce = config.Force or MAX_FORCE
 
 	local startTime = os.clock()
 	tempData.Knockback = {
@@ -62,18 +93,22 @@ function KnockbackManager.Apply(character: Model, tempData: {}, config: Config):
 		BodyVelocity = bodyVelocity,
 	}
 
+	if VISUALIZATION then
+		addVisualization(character, direction)
+	end
+
 	local duration = config.Duration
 	if duration then
-		task.delay(config.Duration, function()
+		task.delay(duration, function()
 			local newKnockback = tempData.Knockback
 			if newKnockback and newKnockback.StartTime == startTime then
-				KnockbackManager.Cancel(tempData)
+				KnockbackManager.Cancel(character, tempData)
 			end
 		end)
 	end
 end
 
-function KnockbackManager.Cancel(tempData: {})
+function KnockbackManager.Cancel(character: Model, tempData: {})
 	local knockback = tempData.Knockback
 	if not knockback then
 		return
@@ -81,6 +116,8 @@ function KnockbackManager.Cancel(tempData: {})
 
 	knockback.BodyVelocity:Destroy()
 	tempData.Knockback = nil
+
+	removeVisualization(character)
 end
 
 return KnockbackManager

@@ -1,7 +1,11 @@
 --// SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 --// MODULES
+local ServerModules = ServerStorage.Modules
+local VfxController = require(ServerModules.VfxController)
+
 local StunManager = require(script.Parent.StunManager)
 
 --// TYPES
@@ -9,8 +13,12 @@ export type Config = {
 	Blockable: boolean,
 	PerfectBlockable: boolean,
 	BlockBreakable: boolean,
+	CustomBlock: boolean,
+	CustomPerfectBlock: boolean,
+	CustomBlockBreak: boolean,
 
 	PerfectBlockFrame: number,
+	PerfectBlockStun: StunManager.Config,
 
 	BlockFunction: () -> (),
 	PerfectBlockFunction: () -> (),
@@ -105,7 +113,7 @@ function BlockManager.AddDurability(player: Player, tempData: {}, block: Block?,
 	end
 end
 
-function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tPlayer: Player, tTempData: {}, config: Config)
+function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tPlayer: Player, tCharacter: Model, tTempData: {}, config: Config)
 	local stun = config.PerfectBlockStun
 	if stun then
 		StunManager.Apply(aCharacter, aTempData, stun)
@@ -114,11 +122,14 @@ function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tPlayer: Pl
 	else
 		StunManager.Apply(aCharacter, aTempData, {
 			Priority = 1,
-			Duration = 3,
+			Duration = 2,
 			WalkSpeed = 0,
-			JumpPower = 0,
-			BlockSkills = true,
+			JumpPower = 0
 		})
+	end
+
+	if not config.CustomPerfectBlock then
+		VfxController.Start(100, 3, "Block", "PerfectBlock", tCharacter)
 	end
 
 	if not tTempData.IsNpc then
@@ -144,13 +155,21 @@ function BlockManager.BreakBlock(player: Player, character: Model, tempData: {},
 		})
 	end
 
+	if not config.CustomBlockBreak then
+		VfxController.Start(100, 3, "Block", "BlockBreak", character)
+	end
+
 	if not tempData.IsNpc then
 		remoteEvent:Fire(player, "BlockBreak")
 	end
 end
 
-function BlockManager.HitBlock(player: Player | {}, tempData: {}, block: Block, damageAmount: number)
+function BlockManager.HitBlock(player: Player | {}, character: Model, tempData: {}, block: Block, damageAmount: number, config: Config)
 	BlockManager.AddDurability(player, tempData, block, -damageAmount)
+
+	if not config.CustomBlock then
+		VfxController.Start(100, 3, "Block", "BlockHit", character)
+	end
 end
 
 function BlockManager.ProcessBlock(
@@ -168,7 +187,7 @@ function BlockManager.ProcessBlock(
 	end
 	
 	if config.PerfectBlockable and BlockManager.IsPerfectBlocked(block, config.PerfectBlockFrame) then
-		BlockManager.PerfectBlock(aCharacter, aTempData, tPlayer, tTempData, config)
+		BlockManager.PerfectBlock(aCharacter, aTempData, tPlayer, tCharacter, tTempData, config)
 
 		local perfectBlockFunction = config.PerfectBlockFunction
 		if perfectBlockFunction then
@@ -186,7 +205,7 @@ function BlockManager.ProcessBlock(
 
 		return "BlockBreak"
 	elseif config.Blockable then
-		BlockManager.HitBlock(tPlayer, tTempData, block, damageAmount)
+		BlockManager.HitBlock(tPlayer, tCharacter, tTempData, block, damageAmount, config)
 
 		local blockFunction = config.BlockFunction
 		if blockFunction then

@@ -11,7 +11,7 @@ function CallValidator.Start(skillName: string, identifier: string, tempData: {}
 		return
 	end
 
-	if tempData.CantUseSkills then
+	if tempData.CantUseSkills or tempData.Stun then
 		return
 	end
 	
@@ -55,7 +55,7 @@ function CallValidator.Interrupt(ignoreChecks: boolean, activeSkill: {}, skillDa
 		return true
 	end
 
-	if not skillData.CanBeInterrupted then
+	if not skillData.Interruptable then
 		return
 	end
 	

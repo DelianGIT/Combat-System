@@ -31,7 +31,7 @@ function WalkSpeedManager.Change(character: Model, tempData: {}, config: Config)
 
 	local duration = config.Duration
 	if duration then
-		task.delay(config.Duration, function()
+		task.delay(duration, function()
 			local currentChange = tempData.WalkSpeedChange
 			if currentChange and currentChange.StartTime == startTime then
 				WalkSpeedManager.Cancel(character, tempData)

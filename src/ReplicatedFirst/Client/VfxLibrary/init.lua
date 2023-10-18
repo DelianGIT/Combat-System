@@ -23,7 +23,7 @@ function VfxLibrary.Start(startTime: number, timeout: number, packName: string, 
 	if timeout and os.time() - startTime >= timeout then
 		return
 	end
-
+	print(Store, packName)
 	local pack = Store[packName]
 	if not pack then
 		error("Vfx pack " .. packName .. " for " .. character.Name .. " not found")
@@ -31,7 +31,7 @@ function VfxLibrary.Start(startTime: number, timeout: number, packName: string, 
 
 	local vfx = pack[vfxName]
 	if not vfx then
-		error("Vfx " .. packName .. "_" .. vfxName .. " for " .. character.Name .. "not found")
+		error("Vfx " .. packName .. "_" .. vfxName .. " for " .. character.Name .. " not found")
 	end
 
 	local trove = Trove.new()

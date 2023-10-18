@@ -31,7 +31,7 @@ function JumpPowerManager.Change(character: Model, tempData: {}, config: Config)
 
 	local duration = config.Duration
 	if duration then
-		task.delay(config.Duration, function()
+		task.delay(duration, function()
 			local currentChange = tempData.JumpPowerChange
 			if currentChange and currentChange.StartTime == startTime then
 				JumpPowerManager.Cancel(character, tempData)
