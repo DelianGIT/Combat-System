@@ -6,24 +6,41 @@
 	  "ReplicatedStorage": {
 		"$className": "ReplicatedStorage",
 		"$ignoreUnknownInstances": true,
-		"$path": "src/ReplicatedStorage"
+		"$path": "src/Shared"
 	  },
   
 	  "ReplicatedFirst": {
 		  "$className": "ReplicatedFirst",
-		  "$ignoreUnknownInstances": true,
-		  "$path": "src/ReplicatedFirst"
+		  "$path": "src/Client"
 	  },
   
 	  "ServerScriptService": {
 		"$className": "ServerScriptService",
-		"$path": "src/ServerScriptService"
+
+		"Server": {
+			"$path": "src/Server/Server"
+		}
 	  },
   
 	  "ServerStorage": {
 		"$className": "ServerStorage",
 		"$ignoreUnknownInstances": true,
-		"$path": "src/ServerStorage"
+
+		"Modules": {
+			"$className": "Folder",
+			"$path": "src/Server/Modules"
+		},
+
+		"Skills": {
+			"$className": "Folder",
+			"$path": "src/Server/Skills"
+		},
+
+		"Npc": {
+			"$className": "Folder",
+			"$path": "src/Server/Npc"
+		}
+
 	  }
 	}
   }
