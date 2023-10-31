@@ -1,5 +1,5 @@
 --// SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")--// VARIABLES
+local ReplicatedStorage = game:GetService("ReplicatedStorage") --// VARIABLES
 local Players = game:GetService("Players")
 
 --// TYPES
@@ -12,7 +12,7 @@ type SpatialQueryConfig = {
 	Blacklist: { Model }?,
 	Offset: CFrame,
 	Size: Vector3,
-	Precise: boolean
+	Precise: boolean,
 }
 
 --// MODULES

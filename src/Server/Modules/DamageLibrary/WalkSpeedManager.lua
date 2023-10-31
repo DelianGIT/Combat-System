@@ -46,8 +46,8 @@ function WalkSpeedManager.Cancel(character: Model, tempData: {})
 		return
 	end
 
-	if character then
-		local humanoid = character.Humanoid
+	local humanoid = character:FindFirstChild("Humanoid")
+	if humanoid then
 		humanoid.WalkSpeed = change.InitValue
 	end
 

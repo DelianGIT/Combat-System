@@ -45,7 +45,7 @@ local function createFolders(key: Key, state: State)
 		end
 	else
 		keyFolder = {}
-		stateFolder = {[key] = keyFolder}
+		stateFolder = { [key] = keyFolder }
 		keybinds[state] = stateFolder
 	end
 
@@ -57,7 +57,7 @@ local function getFolders(key: Key, state: State)
 	if not stateFolder then
 		return
 	end
-	
+
 	local keyFolder = stateFolder[key]
 	if keyFolder then
 		return keyFolder, stateFolder
@@ -231,5 +231,5 @@ return {
 		keybind.ClickFrame = clickFrame
 		keybind.ClickTime = 0
 		return keybind
-	end
+	end,
 }

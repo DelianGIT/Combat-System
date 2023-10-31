@@ -14,14 +14,14 @@ type SpatialQueryConfig = {
 	Blacklist: { Model }?,
 	Offset: CFrame,
 	Size: Vector3,
-	Precise: boolean
+	Precise: boolean,
 }
 type Request = {
 	Player: Player,
 	HitFunction: HitFunction,
 	FireTime: number,
 	Offset: Vector3 | CFrame,
-	Type: Type
+	Type: Type,
 }
 
 --// CONFIG
@@ -38,14 +38,19 @@ local requests = {}
 local ClientHitbox = {}
 
 --// MODULE FUNCTIONS
-function ClientHitbox.Request(player: Player, hitboxType: Type, config: RaycastConfig | SpatialQueryConfig, hitFunction: HitFunction)
+function ClientHitbox.Request(
+	player: Player,
+	hitboxType: Type,
+	config: RaycastConfig | SpatialQueryConfig,
+	hitFunction: HitFunction
+)
 	local id = HttpService:GenerateGUID(false)
 	requests[id] = {
 		Player = player,
 		HitFunction = hitFunction,
 		FireTime = os.clock(),
 		Offset = config.Offset,
-		Type = hitboxType
+		Type = hitboxType,
 	}
 
 	task.delay(ALLOWABLE_TIME_DIFFERENCE, function()
@@ -61,7 +66,7 @@ function ClientHitbox.Cancel(id: string)
 	requests[id] = nil
 end
 
-function ClientHitbox.Validate(player:Player, hit: Model, hitboxPosition: Vector3, allowableDistance: number?)
+function ClientHitbox.Validate(player: Player, hit: Model, hitboxPosition: Vector3, allowableDistance: number?)
 	if not allowableDistance then
 		local ping = player:GetNetworkPing()
 		allowableDistance = ALLOWABLE_DISTANCE + (ping / 100)
@@ -71,11 +76,15 @@ function ClientHitbox.Validate(player:Player, hit: Model, hitboxPosition: Vector
 	local hitPosition = if primaryPart then primaryPart.Position else nil
 	local magnitude = if hitPosition then (hitPosition - hitboxPosition).Magnitude else nil
 
-	if not hit:IsDescendantOf(livingFolder)
-	or not hit:IsA("Model")
-	or not hit:FindFirstChild("Humanoid")
-	or not magnitude or (magnitude > allowableDistance)
-	then return end
+	if
+		not hit:IsDescendantOf(livingFolder)
+		or not hit:IsA("Model")
+		or not hit:FindFirstChild("Humanoid")
+		or not magnitude
+		or (magnitude > allowableDistance)
+	then
+		return
+	end
 
 	return true
 end
@@ -96,7 +105,7 @@ remoteEvent:On(function(player: Player, id: string, hits: { any })
 	if os.clock() - request.FireTime > ALLOWABLE_TIME_DIFFERENCE then
 		return
 	end
-	
+
 	local hitboxPosition
 	if request.Type == "Raycast" then
 		hitboxPosition = character.HumanoidRootPart.Position + request.Offset

@@ -5,17 +5,17 @@ type Connection = {
 	Disconnected: false?,
 	Function: (any) -> (),
 
-	Disconnect: (self: Connection) -> nil
+	Disconnect: (self: Connection) -> (),
 }
 
 type Signal = {
 	LastConnection: Connection?,
 
-	Fire: (self: Signal, any) -> nil,
-	DisconnectAll: (self: Signal) -> nil,
-	Connect: (self: Signal, functionToConnect: (any) -> nil) -> Connection,
-	Once: (self: Signal, functionToConnect: (any) -> nil) -> Connection,
-	Wait: (self: Signal, functionToConnect: (any) -> nil) -> nil,
+	Fire: (self: Signal, any) -> (),
+	DisconnectAll: (self: Signal) -> (),
+	Connect: (self: Signal, functionToConnect: (any) -> ()) -> Connection,
+	Once: (self: Signal, functionToConnect: (any) -> ()) -> Connection,
+	Wait: (self: Signal, functionToConnect: (any) -> ()) -> (),
 }
 
 --// CLASSES
@@ -26,9 +26,9 @@ local Signal: Signal = {}
 Signal.__index = Signal
 
 --// CONNECTION FUNCTIONS
-local function createConnection(functionToConnect: (any) -> nil): Connection
+local function createConnection(functionToConnect: (any) -> ()): Connection
 	return setmetatable({
-		Function = functionToConnect
+		Function = functionToConnect,
 	}, Connection)
 end
 
@@ -96,7 +96,7 @@ end
 return {
 	new = function(): Signal
 		return setmetatable({
-			LastConnection = false
+			LastConnection = false,
 		}, Signal)
-	end
+	end,
 }

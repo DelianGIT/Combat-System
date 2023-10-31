@@ -10,7 +10,6 @@ local ServerModules = ServerStorage.Modules
 local ClientHitbox = require(ServerModules.ClientHitbox)
 local DamageLibrary = require(ServerModules.DamageLibrary)
 local VfxController = require(ServerModules.VfxController)
-local KnockbackManager = DamageLibrary.KnockbackManager
 
 --// CONFIG
 local COMBO_FRAME = 3
@@ -20,46 +19,57 @@ local HITBOX_SIZE = Vector3.new(5, 5, 5)
 local function punchDamage(player: Player | {}, character: Model, tempData: {}, hit: Model, lookVector: Vector3)
 	DamageLibrary.Deal(player, character, tempData, hit, {
 		Amount = 5,
-		
+
 		Interrupting = true,
-		MutualKnockback = true,
+		Blockable = true,
 
 		Knockback = {
 			Priority = 1,
-			Force = Vector3.one * 50000,
-			Duration = 0.2,
+			Force = Vector3.one * 30000,
+			Duration = 0.15,
 			Length = 15,
 
-			Vector = lookVector
+			Vector = lookVector,
 		},
 
 		Stun = {
 			Priority = 1,
 			Duration = 0.8,
 			WalkSpeed = 0,
-			JumpPower = 0
+			JumpPower = 0,
 		},
 
 		Block = {
-			Blockable = true,
+			BlockHitable = true,
 			PerfectBlockable = true,
 			BlockBreakable = false,
 
-			PerfectBlockFrame = 0.5
+			PerfectBlockFrame = 0.5,
 		},
 
 		HitFunction = function()
-			VfxController.Start("Main", "PunchHit", 3, 100, hit)
-		end
+			VfxController.Start(100, hit, {
+				Pack = "Main",
+				Vfx = "PunchHit",
+				AdditionalData = character,
+			})
+		end,
 	})
 end
 
-local function lastPunchDamage(player: Player | {}, character: Model, tempData: {}, hit: Model, lookVector: Vector3, rootCFrame: CFrame)
-	local isHitted
+local function lastPunchDamage(
+	player: Player | {},
+	character: Model,
+	tempData: {},
+	hit: Model,
+	lookVector: Vector3,
+	rootCFrame: CFrame
+)
 	DamageLibrary.Deal(player, character, tempData, hit, {
-		Amount = 5,
+		Amount = 15,
 
 		Interrupting = true,
+		Blockable = true,
 
 		Knockback = {
 			Priority = 1,
@@ -67,40 +77,32 @@ local function lastPunchDamage(player: Player | {}, character: Model, tempData: 
 			Duration = 0.15,
 			Length = 50,
 
-			Vector = lookVector + rootCFrame.UpVector * 0.5
+			Vector = lookVector + rootCFrame.UpVector * 0.5,
 		},
 
 		Stun = {
 			Priority = 1,
 			Duration = 0.8,
 			WalkSpeed = 0,
-			JumpPower = 0
+			JumpPower = 0,
 		},
 
 		Block = {
-			Blockable = true,
+			BlockHitable = true,
 			PerfectBlockable = true,
 			BlockBreakable = false,
 
-			PerfectBlockFrame = 0.5
+			PerfectBlockFrame = 0.5,
 		},
 
 		HitFunction = function()
-			isHitted = true
-			VfxController.Start("Main", "PunchHit", 3, 100, hit)
-		end
+			VfxController.Start(100, hit, {
+				Pack = "Main",
+				Vfx = "PunchHit",
+				AdditionalData = character,
+			})
+		end,
 	})
-
-	if isHitted then
-		KnockbackManager.Apply(character, tempData, {
-			Priority = 1,
-			Force = Vector3.new(1, 0, 1) * 100000,
-			Duration = 0.2,
-			Length = 15,
-
-			Vector = lookVector
-		})
-	end
 end
 
 --// SKILL FUNCTIONS
@@ -130,7 +132,7 @@ return {
 			args.Event:Wait("", function(lookVector2: Vector3, hits: {})
 				lookVector2 = lookVector2.Unit
 				hitboxPosition = hitboxPosition.Position
-	
+
 				local player = args.Player
 				for _, hit in hits do
 					if ClientHitbox.Validate(player, hit, hitboxPosition) then
@@ -143,5 +145,5 @@ return {
 				punchFunc(args.Player, character, tempData, hit, lookVector, rootCFrame)
 			end)
 		end
-	end
+	end,
 }

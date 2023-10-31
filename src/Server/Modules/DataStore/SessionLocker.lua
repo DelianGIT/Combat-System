@@ -7,7 +7,7 @@ export type SessionLocker = {
 	LockedPlayers: { [Player]: number },
 
 	Lock: (self: SessionLocker, player: Player) -> boolean,
-	Unlock: (self: SessionLocker, player: Player) -> ()
+	Unlock: (self: SessionLocker, player: Player) -> (),
 }
 
 --// CONFIG
@@ -42,7 +42,7 @@ local function renewLocking()
 			areThereLockedPlayers = true
 		end
 	end
-	
+
 	return areThereLockedPlayers
 end
 
@@ -105,5 +105,5 @@ return {
 		sessionLockers[name] = sessionLocker
 
 		return sessionLocker
-	end
+	end,
 }

@@ -1,25 +1,16 @@
---// SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-
 --// MODULES
-local ServerModules = ServerStorage.Modules
-local VfxController = require(ServerModules.VfxController)
-
 local StunManager = require(script.Parent.StunManager)
 
 --// TYPES
 export type Config = {
-	Blockable: boolean,
+	BlockHitable: boolean,
 	PerfectBlockable: boolean,
 	BlockBreakable: boolean,
 
-	CustomBlockHit: boolean,
-	CustomPerfectBlock: boolean,
-	CustomBlockBreak: boolean,
-
 	PerfectBlockFrame: number,
+
 	PerfectBlockStun: StunManager.Config,
+	BlockBreakStun: StunManager.Config,
 
 	BlockHitFunction: () -> (),
 	PerfectBlockFunction: () -> (),
@@ -28,13 +19,17 @@ export type Config = {
 type Block = {
 	Durability: number,
 	MaxDurability: number,
-	Time: number
+	Time: number,
+
+	AlwaysPerfectBlock: boolean,
+
+	SetDurabilityFunction: () -> (),
+	BlockHitFunction: () -> (),
+	PerfectBlockFunction: () -> (),
+	BlockBreakFunction: () -> (),
 }
 
 --// VARIABLES
-local remoteEvents = ReplicatedStorage.Events
-local remoteEvent = require(remoteEvents.BlockIndicator):Server()
-
 local BlockManager = {}
 
 --// MODULE FUNCTIONS
@@ -42,73 +37,61 @@ function BlockManager.MakeConfig(): Config
 	return {}
 end
 
-function BlockManager.EnableBlock(player: Player, tempData: {}, durability: number?)
-	durability = durability or tempData.BlockMaxDurability
-
-	tempData.Block = {
-		Durability = durability,
-		MaxDurability = durability,
-		Time = os.clock(),
-	}
-
-	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "Enable", durability)
+function BlockManager.EnableBlock(tempData: {}, block: Block)
+	local durability = block.Durability
+	local maxDurability = block.MaxDurability
+	if not durability and not maxDurability then
+		local blockMaxDurability = tempData.BlockMaxDurability
+		block.Durability = blockMaxDurability
+		block.MaxDurability = blockMaxDurability
+	elseif not durability then
+		block.Durability = tempData.BlockMaxDurability
+	elseif not maxDurability then
+		block.MaxDurability = tempData.BlockMaxDurability
 	end
+
+	block.Time = os.clock()
+
+	tempData.Block = block
 end
 
-function BlockManager.DisableBlock(player: Player, tempData: {})
+function BlockManager.DisableBlock(tempData: {})
 	tempData.Block = nil
-
-	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "Disable")
-	end
 end
 
-function BlockManager.SetDurability(player: Player, tempData: {}, value: number, block: Block)
-	block = block or tempData.Block
-	if not block then
-		return
-	end
-
+function BlockManager.SetDurability(block: Block, value: number)
 	block.Durability = value
 
-	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "SetDurability", value)
+	local func = block.SetDurabilityFunction
+	if func then
+		task.spawn(func, block, value)
 	end
 end
 
-function BlockManager.AddDurability(player: Player, tempData: {}, value: number, block: Block)
-	block = block or tempData.Block
-	if not block then
-		return
-	end
-
+function BlockManager.AddDurability(block: Block, value: number)
 	block.Durability += value
 
-	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "SetDurability", block.Durability)
+	local func = block.SetDurabilityFunction
+	if func then
+		task.spawn(func, block, block.Durability)
 	end
 end
 
-function BlockManager.IsPerfectBlocked(tempData: {}, timeFrame: number?, block: Block?)
-	block = block or tempData.Block
-	timeFrame = timeFrame or block.PerfectBlockFrame
+function BlockManager.HitBlock(block: Block, damageAmount: number, config: Config)
+	BlockManager.AddDurability(block, -damageAmount)
 
-	if not block then
-		return false
-	elseif os.clock() - block.Time <= timeFrame then
-		return true
+	local func = config.BlockHitFunction
+	if func then
+		task.spawn(func)
+	end
+
+	func = block.BlockHitFunction
+	if func then
+		task.spawn(func, block)
 	end
 end
 
-function BlockManager.IsBrokeBlock(tempData: {}, damageAmount: number, block: Block?)
-	block = block or tempData.Block
-	if not block or block.Durability <= damageAmount then
-		return true
-	end
-end
-
-function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tPlayer: Player, tCharacter: Model, tTempData: {}, config: Config)
+function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tBlock: Block, config: Config)
 	local stun = config.PerfectBlockStun
 	if stun ~= false then
 		if stun then
@@ -118,21 +101,23 @@ function BlockManager.PerfectBlock(aCharacter: Model, aTempData: {}, tPlayer: Pl
 				Priority = 1,
 				Duration = 2,
 				WalkSpeed = 0,
-				JumpPower = 0
+				JumpPower = 0,
 			})
 		end
 	end
 
-	if not config.CustomPerfectBlock then
-		VfxController.Start("Block", "PerfectBlock", 100, 3, tCharacter)
+	local func = config.PerfectBlockFunction
+	if func then
+		task.spawn(func)
 	end
 
-	if not tTempData.IsNpc then
-		remoteEvent:Fire(tPlayer, "PerfectBlock")
+	func = tBlock.PerfectBlockFunction
+	if func then
+		task.spawn(func, tBlock)
 	end
 end
 
-function BlockManager.BreakBlock(player: Player, character: Model, tempData: {}, config: Config)
+function BlockManager.BreakBlock(character: Model, tempData: {}, block: Block, config: Config)
 	tempData.Block = nil
 
 	local stun = config.BlockBreakStun
@@ -144,60 +129,58 @@ function BlockManager.BreakBlock(player: Player, character: Model, tempData: {},
 				Priority = 1,
 				Duration = 3,
 				WalkSpeed = 0,
-				JumpPower = 0
+				JumpPower = 0,
 			})
 		end
 	end
 
-	if not config.CustomBlockBreak then
-		VfxController.Start("Block", "Main", 100, 3, character)
+	local func = config.BlockBreakFunction
+	if func then
+		task.spawn(func)
 	end
 
-	if not tempData.IsNpc then
-		remoteEvent:Fire(player, "BlockBreak")
-	end
-end
-
-function BlockManager.HitBlock(player: Player, character: Model, tempData: {}, block: Block, damageAmount: number, config: Config)
-	BlockManager.AddDurability(player, tempData, block, -damageAmount)
-
-	if not config.CustomBlockHit then
-		VfxController.Start("Block", "BlockHit", 100, 3, character)
+	func = block.BlockBreakFunction
+	if func then
+		task.spawn(func, block)
 	end
 end
 
-function BlockManager.ProcessBlock(aCharacter: Model, aTempData: {}, tPlayer: Player, tCharacter: Model, tTempData: {}, damageAmount: number, config: Config)
-	local block = tTempData.Block
+function BlockManager.IsPerfectBlocked(block: Block, timeFrame: number?)
+	timeFrame = timeFrame or block.PerfectBlockFrame
+
 	if not block then
-		return
+		return false
+	elseif os.clock() - block.Time <= timeFrame then
+		return true
 	end
+end
 
-	if config.PerfectBlockable and BlockManager.IsPerfectBlocked(tTempData, config.PerfectBlockFrame, block) then
-		BlockManager.PerfectBlock(aCharacter, aTempData, tPlayer, tCharacter, tTempData, config)
+function BlockManager.IsBrokeBlock(block: Block, damageAmount: number)
+	if not block or block.Durability <= damageAmount then
+		return true
+	end
+end
 
-		local perfectBlockFunction = config.PerfectBlockFunction
-		if perfectBlockFunction then
-			perfectBlockFunction()
-		end
-
+function BlockManager.ProcessBlock(
+	aCharacter: Model,
+	aTempData: {},
+	tCharacter: Model,
+	tTempData: {},
+	tBlock: Block?,
+	damageAmount: number,
+	config: Config
+)
+	if
+		tBlock.AlwaysPerfectBlock
+		or (config.PerfectBlockable and BlockManager.IsPerfectBlocked(tBlock, config.PerfectBlockFrame))
+	then
+		BlockManager.PerfectBlock(aCharacter, aTempData, tBlock, config)
 		return "PerfectBlock"
-	elseif config.BlockBreakable or BlockManager.IsBrokeBlock(tTempData, damageAmount, block) then
-		BlockManager.BreakBlock(tPlayer, tCharacter, tTempData, config)
-
-		local blockBreakFunction = config.BlockBreakFunction
-		if blockBreakFunction then
-			blockBreakFunction()
-		end
-
+	elseif config.BlockBreakable or BlockManager.IsBrokeBlock(tBlock, damageAmount) then
+		BlockManager.BreakBlock(tCharacter, tTempData, tBlock, config)
 		return "BlockBreak"
-	elseif config.Blockable then
-		BlockManager.HitBlock(tPlayer, tCharacter, tTempData, block, damageAmount, config)
-	
-		local blockHitFunction = config.BlockHitFunction
-		if blockHitFunction then
-			blockHitFunction()
-		end
-
+	elseif config.BlockHitable then
+		BlockManager.HitBlock(tBlock, damageAmount, config)
 		return "BlockHit"
 	end
 end

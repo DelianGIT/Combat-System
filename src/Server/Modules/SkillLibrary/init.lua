@@ -19,7 +19,9 @@ function SkillLibrary.GiveSkillPack(name: string, owner: Player | {}, tempData: 
 	end
 
 	local pack = Controller.MakeSkillPack(name, owner, tempData)
-	if not pack then return end
+	if not pack then
+		return
+	end
 
 	if not tempData.IsNpc and not dontFireEvent then
 		remoteEvent:Fire(owner, "Add", name)

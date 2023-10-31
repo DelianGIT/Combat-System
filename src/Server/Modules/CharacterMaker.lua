@@ -67,7 +67,7 @@ local function prepareHumanoid(player: Player, tempData: {}, character: Model)
 		JumpPowerManager.Cancel(character, tempData)
 		WalkSpeedManager.Cancel(character, tempData)
 		StunManager.Cancel(character, tempData)
-		KnockbackManager.Cancel(character, tempData)
+		KnockbackManager.Cancel(tempData)
 
 		CharacterMaker.Make(player, tempData)
 	end)
@@ -99,7 +99,7 @@ function CharacterMaker.Make(player: Player, tempData: {})
 		prepareHumanoid(player, tempData, newCharacter)
 		BodyMover.CreateAttachment(newCharacter)
 	end)
-	
+
 	player:LoadCharacter()
 end
 

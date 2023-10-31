@@ -17,7 +17,7 @@ type DataStore = {
 	Load: (self: DataStore, player: Player) -> ProfileStore.Profile,
 	Get: (self: DataStore, player: Player) -> ProfileStore.Profile,
 	Remove: (self: DataStore, player: Player) -> (),
-	Save: (self: DataStore, player: Player) -> ()
+	Save: (self: DataStore, player: Player) -> (),
 }
 
 --// CLASSES
@@ -145,7 +145,7 @@ return {
 			return setmetatable({
 				Name = name,
 				ProfileStore = ProfileStore.new(profileTemplate),
-				PlayerLocker = PlayerLocker.new()
+				PlayerLocker = PlayerLocker.new(),
 			}, DataStore)
 		else
 			return setmetatable({
@@ -160,5 +160,5 @@ return {
 
 	ToggleStudioMode = function(enabled: boolean)
 		studioMode = enabled
-	end
+	end,
 }

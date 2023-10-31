@@ -39,7 +39,7 @@ hitboxPart.Material = Enum.Material.SmoothPlastic
 hitboxPart.Color = Color3.new(1, 0, 0)
 hitboxPart.Anchored = true
 hitboxPart.CanCollide = false
-hitboxPart.Transparency = if VISUALIZATION then 0.8 else 1
+hitboxPart.Transparency = if VISUALIZATION then 0.5 else 1
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Include
@@ -104,7 +104,13 @@ function Module.Raycast(blacklist: { Model }, origin: Vector3, direction: Vector
 	end
 end
 
-function Module.SpatialQuery(blacklist: { Model }, cframe: CFrame, size: Vector3, precise: boolean, hitFunction: HitFunction)
+function Module.SpatialQuery(
+	blacklist: { Model },
+	cframe: CFrame,
+	size: Vector3,
+	precise: boolean,
+	hitFunction: HitFunction
+)
 	local part
 	if VISUALIZATION or precise then
 		part = Module.MakeHitboxPart(cframe, size)
@@ -112,7 +118,7 @@ function Module.SpatialQuery(blacklist: { Model }, cframe: CFrame, size: Vector3
 	end
 
 	local hits
-	if precise then	
+	if precise then
 		hits = workspace:GetPartsInPart(part, overlapParams)
 	else
 		hits = workspace:GetPartBoundsInBox(cframe, size, overlapParams)
@@ -132,7 +138,8 @@ function Module.SpatialQuery(blacklist: { Model }, cframe: CFrame, size: Vector3
 	if hitFunction then
 		for _, hit in hits do
 			local character = hit.Parent
-			if character:FindFirstChild("Humanoid")
+			if
+				character:FindFirstChild("Humanoid")
 				and not table.find(hittedCharacters, character)
 				and not table.find(blacklist, character)
 			then
@@ -143,7 +150,8 @@ function Module.SpatialQuery(blacklist: { Model }, cframe: CFrame, size: Vector3
 	else
 		for _, hit in hits do
 			local character = hit.Parent
-			if character:FindFirstChild("Humanoid")
+			if
+				character:FindFirstChild("Humanoid")
 				and not table.find(hittedCharacters, character)
 				and not table.find(blacklist, character)
 			then
@@ -180,7 +188,7 @@ function Hitbox:Enable()
 		self.Enabled = true
 
 		table.insert(enabledHitboxes, self)
-	
+
 		if not heartbeatConnection then
 			connectHeartbeat()
 		end

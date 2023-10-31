@@ -10,7 +10,7 @@ type Event = {
 	Once: (self: Event, action: string, functionToConnect: (any) -> ()) -> (),
 	Wait: (self: Event, action: string, functionToConnect: (any) -> ()) -> (),
 	Disconnect: (self: Event, action: string) -> (),
-	Destroy: (self: Event) -> ()
+	Destroy: (self: Event) -> (),
 }
 
 --// CLASSES
@@ -66,7 +66,7 @@ remoteEvent:On(function(name: string, action: string, ...: any)
 		error("Event " .. name .. " not found")
 	end
 
-	local connections = events.Connections
+	local connections = event.Connections
 	local connection = connections[action]
 	if not connection then
 		repeat
@@ -83,11 +83,11 @@ return {
 	new = function(name: string): Event
 		local event = setmetatable({
 			Name = name,
-			Connections = {}
+			Connections = {},
 		}, Event)
 
 		events[name] = event
 
 		return event
-	end
+	end,
 }

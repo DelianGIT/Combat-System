@@ -25,16 +25,19 @@ type FunctionArgs = {
 	Character: Model,
 	TempData: {},
 	SkillData: { [string]: any },
+	Pack: SkillPack,
 	Trove: {},
-	Event: Communicator.Event?
+	Event: Communicator.Event?,
 }
 type Skill = {
 	Data: { [string]: any },
 	Functions: {
+		PreStart: (args: FunctionArgs, any) -> any | "Cancel",
 		Start: (args: FunctionArgs, any) -> (),
+		PreEnd: (args: FunctionArgs, any) -> any,
 		End: (args: FunctionArgs, any) -> (),
-		Interrupt: (args: FunctionArgs) -> ()
-	}
+		Interrupt: (args: FunctionArgs) -> (),
+	},
 }
 type SkillPack = {
 	Name: string,
@@ -46,7 +49,7 @@ type SkillPack = {
 
 	StartSkill: (self: SkillPack, name: string, any) -> (),
 	EndSkill: (self: SkillPack, name: string, any) -> (),
-	InterruptSkill: (self: SkillPack, name: string, ignoreChecks: boolean) -> ()
+	InterruptSkill: (self: SkillPack, name: string, ignoreChecks: boolean) -> (),
 }
 
 --// CLASSES
@@ -67,27 +70,6 @@ local function getSkillPack(player: Player, tempData: {}, name: string)
 	end
 end
 
-local function makeActiveSkill(trove: {}, event: Communicator.Event?, notBlockOtherSkills: boolean)
-	local startTime = tick()
-	local activeSkill = {
-		State = "Start",
-		StartTime = startTime,
-		NotBlockOtherSkills = notBlockOtherSkills,
-		Trove = trove,
-		Event = event
-	}
-	return startTime, activeSkill
-end
-
-local function delaySkillEnd(activeSkills: {}, skillName: string, identifier: string, duration: number, pack: {}, startTime: number)
-	task.delay(duration, function()
-		local activeSkill = activeSkills[identifier]
-		if activeSkill and startTime == activeSkill.StartTime then
-			pack:EndSkill(skillName)
-		end
-	end)
-end
-
 local function unblockOtherSkills(activeSkills: {}, tempData: {})
 	for _, properties in activeSkills do
 		if not properties.NotBlockOtherSkills then
@@ -101,7 +83,9 @@ end
 function SkillPack:StartSkill(name: string, ...: any)
 	local owner = self.Owner
 	local character = owner.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local skill = self:GetSkill(name)
 	local skillData = skill.Data
@@ -110,7 +94,34 @@ function SkillPack:StartSkill(name: string, ...: any)
 	local tempData = self.TempData
 	local cooldownStore = self.CooldownStore
 	if not Validator.Start(name, identifier, tempData, skillData, cooldownStore) then
+		if not tempData.IsNpc then
+			remoteEvent:Fire(owner, "StartNotValid", self.Name, name)
+		end
 		return
+	end
+
+	local skillFunctions = skill.Functions
+	local preStartFunction = skillFunctions.PreStart
+	local result
+	if preStartFunction then
+		result = preStartFunction({
+			Player = owner,
+			Character = character,
+			TempData = tempData,
+			SkillData = skillData,
+		}, ...)
+		if result == "Cancel" then
+			remoteEvent:Fire(owner, "StartNotValid", self.Name, name)
+			return
+		end
+	end
+
+	if not tempData.IsNpc then
+		if result then
+			remoteEvent:Fire(owner, "StartValid", self.Name, name, result)
+		else
+			remoteEvent:Fire(owner, "StartValid", self.Name, name)
+		end
 	end
 
 	local communicator = self.Communicator
@@ -125,15 +136,26 @@ function SkillPack:StartSkill(name: string, ...: any)
 	end
 
 	local trove = Trove.new()
-	local startTime, activeSkill = makeActiveSkill(trove, event, notBlockOtherSkills)
+	local startTime = tick()
+	local activeSkill = {
+		State = "Start",
+		StartTime = startTime,
+		NotBlockOtherSkills = notBlockOtherSkills,
+		Trove = trove,
+		Event = event,
+	}
 	local activeSkills = tempData.ActiveSkills
 	activeSkills[identifier] = activeSkill
 
 	local duration = skillData.Duration
-	local skillFunctions = skill.Functions
 	local hasEnd = skillFunctions.End
 	if duration and hasEnd then
-		delaySkillEnd(activeSkills, name, identifier, duration, self, startTime)
+		task.delay(duration, function()
+			activeSkill = activeSkills[identifier]
+			if activeSkill and startTime == activeSkill.StartTime then
+				self:EndSkill(name)
+			end
+		end)
 	end
 
 	local cooldown = skillData.Cooldown
@@ -148,13 +170,14 @@ function SkillPack:StartSkill(name: string, ...: any)
 			Character = character,
 			TempData = tempData,
 			SkillData = skillData,
+			Pack = self,
 			Trove = trove,
-			Event = event
+			Event = event,
 		}, ...)
 
 		if not success then
 			warn("Start of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
-			
+
 			local humanoid = character.Humanoid
 			if humanoid.Health >= 0 then
 				if not tempData.IsNpc then
@@ -170,11 +193,11 @@ function SkillPack:StartSkill(name: string, ...: any)
 		else
 			activeSkills[identifier] = nil
 			unblockOtherSkills(activeSkills, tempData)
-	
+
 			if cooldownType == "End" then
 				cooldownStore:Start(name)
 			end
-	
+
 			if not tempData.IsNpc then
 				communicator:DestroyEvent(identifier)
 				remoteEvent:Fire(owner, "Finished", self.Name, name)
@@ -188,7 +211,9 @@ end
 function SkillPack:EndSkill(name: string, ...: any)
 	local owner = self.Owner
 	local character = owner.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local skill = self:GetSkill(name)
 	local skillFunctions = skill.Functions
@@ -198,6 +223,9 @@ function SkillPack:EndSkill(name: string, ...: any)
 	local activeSkills = tempData.ActiveSkills
 	local activeSkill = activeSkills[identifier]
 	if not Validator.End(activeSkill, skillFunctions) then
+		if not tempData.IsNpc then
+			remoteEvent:Fire(owner, "EndNotValid", self.Name, name)
+		end
 		return
 	end
 
@@ -209,6 +237,26 @@ function SkillPack:EndSkill(name: string, ...: any)
 	end
 	activeSkill.State = "End"
 
+	local skillData = skill.Data
+	local preEndFunction = skillFunctions.PreEnd
+	local result
+	if preEndFunction then
+		result = preEndFunction({
+			Player = owner,
+			Character = character,
+			TempData = tempData,
+			SkillData = skillData,
+		}, ...)
+	end
+
+	if not tempData.IsNpc then
+		if result then
+			remoteEvent:Fire(owner, "EndValid", self.Name, name, result)
+		else
+			remoteEvent:Fire(owner, "EndValid", self.Name, name)
+		end
+	end
+
 	local communicator = self.Communicator
 	local event
 	if communicator then
@@ -216,19 +264,19 @@ function SkillPack:EndSkill(name: string, ...: any)
 	end
 
 	task.spawn(function(...)
-		local skillData = skill.Data
 		local success, err = pcall(skillFunctions.End, {
 			Player = owner,
 			Character = character,
 			TempData = tempData,
 			SkillData = skillData,
+			Pack = self,
 			Trove = activeSkill.Trove,
-			Event = event
+			Event = event,
 		}, ...)
 
 		if not success then
 			warn("End of " .. identifier .. " for " .. owner.Name .. " threw an error: " .. err)
-			
+
 			local humanoid = character.Humanoid
 			if humanoid.Health >= 0 then
 				if not tempData.IsNpc then
@@ -242,11 +290,11 @@ function SkillPack:EndSkill(name: string, ...: any)
 		else
 			activeSkills[identifier] = nil
 			unblockOtherSkills(activeSkills, tempData)
-	
+
 			if skillData.Cooldown.Type == "End" then
 				self.CooldownStore:Start(name)
 			end
-	
+
 			if not tempData.IsNpc then
 				communicator:DestroyEvent(identifier)
 				remoteEvent:Fire(owner, "Finished", self.Name, name)
@@ -294,8 +342,9 @@ function SkillPack:InterruptSkill(name: string, ignoreChecks: boolean)
 				Character = character,
 				TempData = tempData,
 				SkillData = skillData,
+				Pack = self,
 				Trove = trove,
-				Event = event
+				Event = event,
 			}, ...)
 
 			if not success then
@@ -335,15 +384,11 @@ remoteEvent:On(function(player: Player, action: string, packName: string, skillN
 	local tempData = TempData.Get(player)
 	local pack = getSkillPack(player, tempData, packName)
 
-	local isValid
 	if action == "Start" then
-		isValid = pack:StartSkill(skillName, additionalData)
+		pack:StartSkill(skillName, additionalData)
 	elseif action == "End" then
-		isValid = pack:EndSkill(skillName, additionalData)
+		pack:EndSkill(skillName, additionalData)
 	end
-	isValid = if isValid then "Valid" else "NotValid"
-
-	remoteEvent:Fire(player, action .. isValid, packName, skillName)
 end)
 
 --// MODULE FUNCTIONS
@@ -363,7 +408,7 @@ return {
 				tempData.Communicator = communicator
 			end
 		end
-		
+
 		local cooldownStore = CooldownStore.new()
 		local skills = {}
 		for skillName, properties in storedPack do
@@ -381,7 +426,7 @@ return {
 			TempData = tempData,
 			Skills = skills,
 			Communicator = communicator,
-			CooldownStore = cooldownStore
+			CooldownStore = cooldownStore,
 		}, SkillPack)
-	end
+	end,
 }

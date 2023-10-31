@@ -11,8 +11,8 @@ export type Profile = {
 	Data: Template,
 	Metadata: {
 		CreatedTime: number,
-		UpdatedTime: number
-	}
+		UpdatedTime: number,
+	},
 }
 export type ProfileStore = {
 	Profiles: { [Player]: Template },
@@ -20,7 +20,7 @@ export type ProfileStore = {
 
 	CreateProfile: (self: ProfileStore, player: Player, data: Template?) -> Profile,
 	DeleteProfile: (self: ProfileStore, player: Player) -> (),
-	GetProfile: (self: ProfileStore, player: Player) -> Profile
+	GetProfile: (self: ProfileStore, player: Player) -> Profile,
 }
 
 --// CLASSES
@@ -66,9 +66,9 @@ function ProfileStore:CreateProfile(player: Player, data: Template?): Profile
 		profile = Utility.DeepTableClone(self.Template)
 		profile.Metadata.CreatedTime = tick()
 	end
-	
+
 	self.Profiles[player] = profile
-	
+
 	return profile
 end
 
@@ -89,9 +89,9 @@ return {
 				Data = profileTemplate,
 				Metadata = {
 					CreatedTime = 0,
-					UpdatedTime = 0
+					UpdatedTime = 0,
 				},
-			}
+			},
 		}, ProfileStore)
-	end
+	end,
 }

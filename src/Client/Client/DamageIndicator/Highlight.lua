@@ -2,11 +2,14 @@
 local TweenService = game:GetService("TweenService")
 
 --// CONFIG
-local DURATION = 0.25
+local DURATION = 0.35
+local FILL_TRANSPARENCY = 0.25
+local OUTLINE_TRANSPARENCY = 0.25
 
 --// VARIABLES
 local highlight = Instance.new("Highlight")
 highlight.FillColor = Color3.new(1, 0, 0)
+highlight.OutlineColor = Color3.new(1, 0, 0)
 highlight.FillTransparency = 1
 highlight.OutlineTransparency = 1
 highlight.DepthMode = Enum.HighlightDepthMode.Occluded
@@ -19,7 +22,8 @@ return function(target: Model)
 	newHighlight.Parent = target
 
 	TweenService:Create(newHighlight, tweenInfo, {
-		FillTransparency = 0.5
+		FillTransparency = FILL_TRANSPARENCY,
+		OutlineTransparency = OUTLINE_TRANSPARENCY,
 	}):Play()
 
 	task.delay(DURATION, function()

@@ -19,5 +19,5 @@ end
 
 return {
 	SpawnedFunction = spawned,
-	Character = ServerStorage.Assets.Npc.Dummy
+	Character = ServerStorage.Assets.Npc.Dummy,
 }

@@ -1,11 +1,41 @@
 --// SERVICES
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
+--// TYPES
+type Skill = {
+	Keybind: Enum.KeyCode | Enum.UserInputType,
+	Frame: Frame,
+	Cooldown: {
+		Pressed: boolean,
+		Frame: Frame,
+		Label: TextLabel,
+		LeftGradient: UIGradient,
+		RightGradient: UIGradient,
+	},
+	KeybindStroke: UIStroke,
+	NameStroke: UIStroke,
+	NameGradient: UIGradient,
+}
+type GuiList = {
+	List: Frame,
+	Skills: { [string]: Skill },
+
+	Open: (self: GuiList) -> (),
+	Close: (self: GuiList) -> (),
+	Pressed: (self: GuiList, skillName: string) -> (),
+	Unpressed: (self: GuiList, skillName: string) -> (),
+	Started: (self: GuiList, skillName: string, identifier: string) -> (),
+	Finished: (self: GuiList, identifier: string) -> (),
+	StartCooldown: (self: GuiList, skillName: string, duration: number) -> (),
+	AddSkill: (self: GuiList, skillName: string, keybind: Enum.KeyCode | Enum.UserInputType) -> (),
+}
+
 --// CLASSES
-local GuiList = {}
+local GuiList: GuiList = {}
 GuiList.__index = GuiList
 
 --// VARIABLES
@@ -19,13 +49,10 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SkillsLists"
 screenGui.ResetOnSpawn = false
 
-local closedPosition = UDim2.fromScale(1, 0.5)
-local openedPosition = UDim2.fromScale(0.837, 0.5)
+local closedPosition = UDim2.fromScale(1, 0.935) --UDim2.fromScale(1, 0.5)
+local openedPosition = UDim2.fromScale(0.835, 0.935) --UDim2.fromScale(0.837, 0.5)
 local cooldownSize = UDim2.fromScale(0.15, 0.9)
 local zeroSize = UDim2.fromScale(0, 0)
-
-local startVector2 = Vector2.new(-1, 0)
-local endVector2 = Vector2.new(1, 0)
 
 local redColor = Color3.new(1, 0, 0)
 local greenColor = Color3.new(0, 1, 0)
@@ -33,12 +60,27 @@ local greenColor = Color3.new(0, 1, 0)
 local pressedTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 local unpressedTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 local activationTweenInfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-local activationTweenInfo2 = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge)
 
 local activeSkills = {}
 
 --// MODULE FUNCTIONS
 function GuiList:Open()
+	for skillName, properties in self.Skills do
+		if not properties.Pressed then
+			continue
+		end
+
+		local keybind = properties.Keybind
+		local keybindType = keybind.EnumType
+
+		if
+			keybindType == Enum.KeyCode and not UserInputService:IsKeyDown(keybind)
+			or not UserInputService:IsMouseButtonPressed(keybind)
+		then
+			self:Unpressed(skillName)
+		end
+	end
+
 	self.List:TweenPosition(openedPosition, Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true)
 end
 
@@ -47,6 +89,8 @@ function GuiList:Close()
 end
 
 function GuiList:Pressed(skillName: string)
+	self.Skills[skillName].Pressed = true
+
 	local uiStroke = self.Skills[skillName].KeybindStroke
 	TweenService:Create(uiStroke, pressedTweenInfo, {
 		Thickness = 3,
@@ -54,6 +98,8 @@ function GuiList:Pressed(skillName: string)
 end
 
 function GuiList:Unpressed(skillName: string)
+	self.Skills[skillName].Pressed = false
+
 	local uiStroke = self.Skills[skillName].KeybindStroke
 	TweenService:Create(uiStroke, unpressedTweenInfo, {
 		Thickness = 0,
@@ -65,81 +111,82 @@ function GuiList:Started(skillName: string, identifier: string)
 	local stroke = skill.NameStroke
 
 	TweenService:Create(stroke, activationTweenInfo1, {
-		Thickness = 3
+		Thickness = 3,
 	}):Play()
 
 	local uiGradient = skill.NameGradient
-	uiGradient.Offset = startVector2
+	uiGradient.Rotation = -180
 
-	local tween = TweenService:Create(uiGradient, activationTweenInfo2, {
-		Offset = endVector2
-	})
-	tween:Play()
+	local connection
+	connection = RunService.Heartbeat:Connect(function(deltaTime: number)
+		local rotation = uiGradient.Rotation + (60 * deltaTime) * 3
+		uiGradient.Rotation = if math.clamp(rotation, -180, 180) % 180 == 0 then -180 else rotation
+	end)
 
 	activeSkills[identifier] = {
 		Stroke = stroke,
-		Tween = tween
+		Connection = connection,
 	}
 end
 
-function GuiList:Ended(identifier: string)
+function GuiList:Finished(identifier: string)
 	local activeSkill = activeSkills[identifier]
 
-	local tween = activeSkill.Tween
-	tween:Cancel()
+	activeSkill.Connection:Disconnect()
 
 	local stroke = activeSkill.Stroke
 	TweenService:Create(stroke, activationTweenInfo1, {
-		Thickness = 0
+		Thickness = 0,
 	}):Play()
 
 	activeSkills[identifier] = nil
 end
 
 function GuiList:StartCooldown(skillName: string, duration: number)
-	if duration <= 0 then return end
+	if duration <= 0 then
+		return
+	end
 
 	local cooldown = self.Skills[skillName].Cooldown
 	local frame = cooldown.Frame
-	local value = cooldown.Value
+	local label = cooldown.Label
 	local leftGradient = cooldown.LeftGradient
 	local rightGradient = cooldown.RightGradient
 
+	rightGradient.Rotation = -180
+	leftGradient.Rotation = 0
+
+	local colorSequence = ColorSequence.new(redColor)
+	leftGradient.Color = colorSequence
+	rightGradient.Color = colorSequence
+
 	frame:TweenSize(cooldownSize, Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.5, true)
-	
+
 	local startTime = os.clock()
 	local alphaStep = 1 / (60 * duration)
 	local alpha = 0
 	local rotationStep = 180 / (30 * duration)
 	local side = true
-
 	local connection
 	connection = RunService.Heartbeat:Connect(function(deltaTime: number)
 		local stabilizer = 60 * deltaTime
 
-		local passedTime = os.clock() - startTime
-		if passedTime >= duration then
+		if alpha >= 1 then
 			connection:Disconnect()
-			
-			value.Text = 0
+
+			label.Text = 0
 
 			rightGradient.Rotation = 0
 			leftGradient.Rotation = 180
-			
-			local colorSequence = ColorSequence.new(greenColor)
+
+			colorSequence = ColorSequence.new(greenColor)
 			leftGradient.Color = colorSequence
 			rightGradient.Color = colorSequence
 
-			frame:TweenSize(zeroSize, Enum.EasingDirection.In, Enum.EasingStyle.Linear, 0.2, true, function()
-				rightGradient.Rotation = -180
-				leftGradient.Rotation = 0
-
-				colorSequence = ColorSequence.new(redColor)
-				leftGradient.Color = colorSequence
-				rightGradient.Color = colorSequence
-			end)
+			frame:TweenSize(zeroSize, Enum.EasingDirection.In, Enum.EasingStyle.Linear, 0.2, true)
 		else
-			value.Text = math.floor((duration - passedTime) * 10) / 10
+			local passedTime = os.clock() - startTime
+			label.Text = math.floor((duration - passedTime) * 10) / 10
 
 			if side then
 				if rightGradient.Rotation < 0 then
@@ -156,7 +203,7 @@ function GuiList:StartCooldown(skillName: string, duration: number)
 				end
 			end
 
-			local colorSequence = ColorSequence.new(redColor:Lerp(greenColor, alpha))
+			colorSequence = ColorSequence.new(redColor:Lerp(greenColor, alpha))
 			leftGradient.Color = colorSequence
 			rightGradient.Color = colorSequence
 
@@ -178,25 +225,27 @@ function GuiList:AddSkill(skillName: string, keybind: Enum.KeyCode | Enum.UserIn
 	else
 		keybindFrame.Value.Text = keybind.Name
 	end
-		
+
 	skill.Visible = true
 	skill.Parent = self.List
 
 	local nameStroke = skill.SkillName.UIStroke
 	local cooldownFrame = skill.Cooldown
 	self.Skills[skillName] = {
+		Keybind = keybind,
 		Frame = skill,
 		Cooldown = {
 			Frame = cooldownFrame,
-			Value = cooldownFrame.Value.Value,
+			Label = cooldownFrame.Value.TextLabel,
 			LeftGradient = cooldownFrame.Left.Frame.UIGradient,
-			RightGradient = cooldownFrame.Right.Frame.UIGradient
+			RightGradient = cooldownFrame.Right.Frame.UIGradient,
+			Pressed = {},
 		},
 		KeybindStroke = keybindFrame.UIStroke,
 		NameStroke = nameStroke,
 		NameGradient = nameStroke.UIGradient,
 	}
-	
+
 	return skill
 end
 
@@ -212,12 +261,12 @@ return {
 		list.Name = packName
 		list.Visible = true
 		list.Parent = screenGui
-	
+
 		local guiList = setmetatable({
 			List = list,
-			Skills = {}
+			Skills = {},
 		}, GuiList)
 
 		return guiList
-	end
+	end,
 }

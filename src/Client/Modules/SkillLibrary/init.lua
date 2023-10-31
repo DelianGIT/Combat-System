@@ -59,7 +59,7 @@ local function giveSkillPackItem(backpack: Backpack, packName: string, guiList: 
 		for identifier, properties in activeSkills do
 			local splittedString = string.split(identifier, "_")
 			if splittedString[1] == packName and properties.State == "ReadyToEnd" then
-				Controller.End(packName, splittedString[2])
+				Controller.RequestEnd(packName, splittedString[2])
 			end
 		end
 	end)
@@ -77,12 +77,12 @@ local function makeKeybinds(packName: string, skillName: string, skillData: {}, 
 	local beginKeybind
 	if externalArg then
 		beginKeybind = Keybind[keybindInfo.State](skillName, inputKey, externalArg, function()
-			Controller.Start(packName, skillName)
+			Controller.RequestStart(packName, skillName)
 			guiList:Pressed(skillName)
 		end)
 	else
 		beginKeybind = Keybind[keybindInfo.State](skillName, inputKey, function()
-			Controller.Start(packName, skillName)
+			Controller.RequestStart(packName, skillName)
 			guiList:Pressed(skillName)
 		end)
 	end
@@ -91,7 +91,7 @@ local function makeKeybinds(packName: string, skillName: string, skillData: {}, 
 	local endKeybind
 	if skillData.HasEnd then
 		endKeybind = Keybind.End(skillName, inputKey, function()
-			Controller.End(packName, skillName)
+			Controller.RequestEnd(packName, skillName)
 			guiList:Unpressed(skillName)
 		end)
 	else
@@ -101,7 +101,7 @@ local function makeKeybinds(packName: string, skillName: string, skillData: {}, 
 	end
 	endKeybind:Disable()
 
-	return {beginKeybind, endKeybind}
+	return { beginKeybind, endKeybind }
 end
 
 --// MODULE FUNCTIONS
@@ -120,7 +120,7 @@ function SkillLibrary.AddSkillPack(name: string)
 		local data = Utility.DeepTableClone(properties.Data)
 		local skill = {
 			Data = data,
-			Functions = properties.Functions
+			Functions = properties.Functions,
 		}
 		skills[skillName] = skill
 
@@ -132,7 +132,7 @@ function SkillLibrary.AddSkillPack(name: string)
 		CooldownStore = cooldownStore,
 		GuiList = guiList,
 		Keybinds = keybinds,
-		Skills = skills
+		Skills = skills,
 	}
 end
 

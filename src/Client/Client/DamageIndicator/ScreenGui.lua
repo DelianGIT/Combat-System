@@ -14,18 +14,17 @@ local hitsLabel = mainFrame.Hits
 local hitsStroke = hitsLabel.UIStroke
 local timerFrame = mainFrame.Timer
 
-local startTimerSize = UDim2.fromScale(1.25, 0.083)
-local endTimerSize = UDim2.fromScale(0, 0.083)
-local startMainFrameSize = UDim2.fromScale(0.104, 0.148)
-local endMainFrameSize = UDim2.fromScale(0.13, 0.185)
+local startTimerSize = UDim2.fromScale(1, 0.05)
+local endTimerSize = UDim2.fromScale(0, 0.05)
+local startMainFrameSize = UDim2.fromScale(0.121, 0.123)
+local endMainFrameSize = UDim2.fromScale(0.151, 0.154)
 
 local transparencyTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-local timerTweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-local mainFrameTweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, true)
+local timerTweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local mainFrameTweenInfo = TweenInfo.new(0.075, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, true)
 
 local hitsAmount = 0
 local damageAmount = 0
-local rotationSide = 1
 
 local active = false
 
@@ -53,16 +52,16 @@ local function updateLabels(amount: number)
 	hitsLabel.Text = hitsAmount .. " Hits"
 
 	damageAmount += amount
-	damageLabel.Text = damageAmount
+	damageLabel.Text = damageAmount .. " DMG"
 end
 
 local function updateTimer()
 	timerFrame.Size = startTimerSize
 
 	local timerTween = TweenService:Create(timerFrame, timerTweenInfo, {
-		Size = endTimerSize
+		Size = endTimerSize,
 	})
-	
+
 	timerTween.Completed:Once(function(playbackState: Enum.PlaybackState)
 		if playbackState == Enum.PlaybackState.Completed then
 			tweenTransparency(1)
@@ -78,13 +77,8 @@ end
 local function updateSize()
 	mainFrame.Size = startMainFrameSize
 	TweenService:Create(mainFrame, mainFrameTweenInfo, {
-		Size = endMainFrameSize
+		Size = endMainFrameSize,
 	}):Play()
-end
-
-local function changeRotation()
-	rotationSide *= -1
-	mainFrame.Rotation = math.random(1, 15) * rotationSide
 end
 
 --// MODULE FUNCTION
@@ -97,5 +91,4 @@ return function(amount: number)
 	updateLabels(amount)
 	updateTimer()
 	updateSize()
-	changeRotation()
 end

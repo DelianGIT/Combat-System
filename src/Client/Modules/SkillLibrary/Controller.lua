@@ -17,11 +17,11 @@ local remoteEvent = require(remoteEvents.SkillControl):Client()
 
 local blockOtherSkills = false
 
+local eventFunctions = {}
 local requestedEnd = {}
 local requestedStart = {}
 local skillPacks = {}
 local activeSkills = {}
-local eventFunctions = {}
 local Controller = {}
 
 --// FUNCTIONS
@@ -30,7 +30,7 @@ local function getSkillFunction(functionName: string, skill: {})
 	return if functions then functions[functionName] else nil
 end
 
-local function startCooldown(pack:{}, skillName: string)
+local function startCooldown(pack: {}, skillName: string)
 	local cooldownDuration = pack.CooldownStore:Start(skillName)
 	pack.GuiList:StartCooldown(skillName, cooldownDuration)
 end
@@ -44,7 +44,7 @@ local function unblockOtherSkills(array: {})
 	blockOtherSkills = false
 end
 
---// VALIDATED FUNCTIONS
+--// EVENT FUNCTIONS
 function eventFunctions.Finished(packName: string, skillName: string)
 	local identifier = packName .. "_" .. skillName
 	local activeSkill = activeSkills[identifier]
@@ -67,8 +67,11 @@ function eventFunctions.Finished(packName: string, skillName: string)
 	end
 
 	local pack = skillPacks[packName]
-	pack.GuiList:Ended(identifier)
-	
+	local hasEnd = activeSkill.HasEnd
+	if hasEnd then
+		pack.GuiList:Finished(identifier)
+	end
+
 	local skill = pack.Skills[skillName]
 	if skill.Data.Cooldown.Type == "End" then
 		startCooldown(pack, skillName)
@@ -110,9 +113,12 @@ function eventFunctions.Interrupted(packName: string, skillName: string)
 			trove:Clean()
 		end
 	end
-	
-	pack.GuiList:Ended(identifier)
-	
+
+	local hasEnd = activeSkill.HasEnd
+	if hasEnd then
+		pack.GuiList:Finished(identifier)
+	end
+
 	if skill.Data.Cooldown.Type == "End" then
 		startCooldown(pack, skillName)
 	end
@@ -126,17 +132,30 @@ function eventFunctions.Interrupted(packName: string, skillName: string)
 	unblockOtherSkills(activeSkills)
 end
 
-function eventFunctions.StartValid(packName: string, skillName: string)
+function eventFunctions.StartValid(packName: string, skillName: string, additionalData: any)
+	local pack = skillPacks[packName]
+	local skill = pack.Skills[skillName]
+	local skillData = skill.Data
+
 	local identifier = packName .. "_" .. skillName
 	local activeSkill = requestedStart[identifier]
-	activeSkill.State = "Start"
+	if activeSkill then
+		activeSkill.State = "Start"
+		requestedStart[identifier] = nil
+	else
+		activeSkill = {
+			State = "Start",
+			HasEnd = skillData.HasEnd,
+			NotBlockOtherSkills = skillData.NotBlockOtherSkills,
+		}
+	end
 	activeSkills[identifier] = activeSkill
-	requestedStart[identifier] = nil
 
-	local pack = skillPacks[packName]
-	pack.GuiList:Started(skillName, identifier)
+	local hasEnd = activeSkill.HasEnd
+	if hasEnd then
+		pack.GuiList:Started(skillName, identifier)
+	end
 
-	local skill = pack.Skills[skillName]
 	local startFunction = getSkillFunction("Start", skill)
 	if startFunction then
 		local trove = Trove.new()
@@ -145,24 +164,29 @@ function eventFunctions.StartValid(packName: string, skillName: string)
 		local event = Communicator.new(identifier)
 		activeSkill.Event = event
 
-		local success, err = pcall(startFunction, player, player.Character, event, trove)
+		local success, err = pcall(startFunction, {
+			Player = player,
+			Character = player.Character,
+			Event = event,
+			Trove = trove,
+		}, additionalData)
 		if not success then
 			warn("Start of " .. identifier .. " threw an error: " .. err)
 		end
 	end
 
-	if skill.Data.Cooldown.Type == "Begin" then
+	if skillData.Cooldown.Type == "Begin" then
 		startCooldown(pack, skillName)
 	end
 
-	if activeSkill.HasEnd then
+	if hasEnd then
 		activeSkill.State = "ReadyToEnd"
 	else
 		activeSkill.State = "ReadyToFinish"
 	end
 end
 
-function eventFunctions.EndValid(packName: string, skillName: string)
+function eventFunctions.EndValid(packName: string, skillName: string, additionalData: any)
 	local identifier = packName .. "_" .. skillName
 	requestedEnd[identifier] = nil
 
@@ -172,12 +196,17 @@ function eventFunctions.EndValid(packName: string, skillName: string)
 	local pack = skillPacks[packName]
 	local endFunction = getSkillFunction("End", pack.Skills[skillName])
 	if endFunction then
-		local success, err = pcall(endFunction, player, player.Character, activeSkill.Event, activeSkill.Trove)
+		local success, err = pcall(endFunction, {
+			Player = player,
+			Character = player.Character,
+			Event = activeSkill.Event,
+			Trove = activeSkill.Trove,
+		}, additionalData)
 		if not success then
 			warn("End of " .. identifier .. " threw an error: " .. err)
 		end
 	end
-	
+
 	activeSkill.State = "ReadyToFinish"
 end
 
@@ -192,7 +221,7 @@ function eventFunctions.EndNotValid(packName: string, skillName: string)
 end
 
 --// MODULE FUNCTIONS
-function Controller.Start(packName: string, skillName: string)
+function Controller.RequestStart(packName: string, skillName: string)
 	if not player.Character then
 		return
 	end
@@ -216,10 +245,10 @@ function Controller.Start(packName: string, skillName: string)
 		return
 	end
 
-	local prestartFunction = getSkillFunction("Prestart", skill)
+	local preStartFunction = getSkillFunction("PreStart", skill)
 	local result
-	if prestartFunction then
-		result = prestartFunction(player)
+	if preStartFunction then
+		result = preStartFunction(player)
 		if result == "Cancel" then
 			return
 		end
@@ -233,7 +262,7 @@ function Controller.Start(packName: string, skillName: string)
 
 	requestedStart[identifier] = {
 		HasEnd = skillData.HasEnd,
-		NotBlockOtherSkills = notBlockOtherSkills
+		NotBlockOtherSkills = notBlockOtherSkills,
 	}
 
 	if result then
@@ -243,11 +272,11 @@ function Controller.Start(packName: string, skillName: string)
 	end
 end
 
-function Controller.End(packName: string, skillName: string)
+function Controller.RequestEnd(packName: string, skillName: string)
 	if not player.Character then
 		return
 	end
-	
+
 	local identifier = packName .. "_" .. skillName
 	if requestedEnd[identifier] then
 		return
@@ -267,22 +296,34 @@ function Controller.End(packName: string, skillName: string)
 			end
 		until activeSkill.State == "ReadyToEnd"
 
-		if activeSkill.State == "WaitingForEndValiation"  then
+		if activeSkill.State == "WaitingForEndValiation" then
 			return
 		end
 	end
 	activeSkill.State = "WaitingForEndValiation"
 
+	local pack = skillPacks[packName]
+	local skill = pack.Skills[skillName]
+	local preEndFunction = getSkillFunction("PreEnd", skill)
+	local result
+	if preEndFunction then
+		result = preEndFunction(player)
+	end
+
 	requestedEnd[identifier] = true
-	remoteEvent:Fire("End", packName, skillName)
+	if result then
+		remoteEvent:Fire("End", packName, skillName, result)
+	else
+		remoteEvent:Fire("End", packName, skillName)
+	end
 end
 
 Controller.SkillPacks = skillPacks
 Controller.ActiveSkills = activeSkills
 
 --// EVENTS
-remoteEvent:On(function(action: string, packName: string, skillName: string)
-	eventFunctions[action](packName, skillName)
+remoteEvent:On(function(action: string, packName: string, skillName: string, ...: any)
+	eventFunctions[action](packName, skillName, ...)
 end)
 
 return Controller

@@ -36,7 +36,7 @@ local function prepareHumanoid(character: Model)
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 
 	makeHpIndicator(character, humanoid)
-	
+
 	return humanoid
 end
 
@@ -45,10 +45,10 @@ return {
 	Make = function(data: {}, cframe: CFrame)
 		local character = data.Character:Clone()
 		character:PivotTo(cframe)
-	
+
 		BodyMover.CreateAttachment(character)
 		local humanoid = prepareHumanoid(character)
-	
+
 		return character, humanoid
-	end
+	end,
 }

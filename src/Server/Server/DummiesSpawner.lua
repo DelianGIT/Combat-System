@@ -12,9 +12,9 @@ local spawners = workspace.Spawners
 local function spawnDummy(name: string, spawner: Part)
 	local npc = NpcMaker.Spawn(name, spawner.CFrame)
 	local character = npc.Character
-	
+
 	character.Humanoid.Died:Connect(function()
-		task.wait(5)
+		task.wait(3)
 		character:Destroy()
 		spawnDummy(name, spawner)
 	end)
@@ -22,7 +22,7 @@ end
 
 --// SPAWNING NPC
 spawnDummy("ImmortalDummy", spawners.Immortal)
---spawnDummy("AttackingDummy", spawners.Attacking)
+spawnDummy("AttackingDummy", spawners.Attacking)
 spawnDummy("BlockingDummy", spawners.Blocking)
 spawnDummy("PerfectBlockingDummy", spawners.PerfectBlocking)
 

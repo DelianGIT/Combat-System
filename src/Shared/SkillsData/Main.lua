@@ -2,30 +2,30 @@ return {
 	Punch = {
 		Cooldown = {
 			Duration = 0.35,
-			Type = "End"
-		}
+			Type = "End",
+		},
 	},
 
 	Block = {
 		Cooldown = {
 			Duration = 0.5,
-			Type = "End"
-		}
+			Type = "End",
+		},
 	},
 
 	Dash = {
 		Cooldown = {
 			Duration = 0.5,
-			Type = "End"
-		}
+			Type = "End",
+		},
 	},
 
 	Sprint = {
 		Cooldown = {
 			Duration = 0,
-			Type = "End"
+			Type = "End",
 		},
 
-		NotBlockOtherSkills = true
-	}
+		NotBlockOtherSkills = true,
+	},
 }

@@ -32,5 +32,5 @@ end
 return {
 	new = function(): CooldownStore
 		return setmetatable({}, CooldownStore)
-	end
+	end,
 }

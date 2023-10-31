@@ -15,7 +15,9 @@ local loadingStages = 1
 local eventFunctions = {}
 
 -- WATING FOR LOADED GAME
-repeat task.wait() until game:IsLoaded()
+repeat
+	task.wait()
+until game:IsLoaded()
 print("Game loaded")
 
 --// REQUIRING MODULES

@@ -40,7 +40,7 @@ for _, dataModule in SKILLS_FOLDER:GetChildren() do
 
 		pack[skillName] = {
 			Data = skillData,
-			Functions = result
+			Functions = result,
 		}
 	end
 

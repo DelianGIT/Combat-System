@@ -25,14 +25,14 @@ local notLoadedPlayers = {}
 DataStore.ToggleStudioMode(STUDIO_MODE)
 
 local mainDataStore = DataStore.new("Main", {
-	SkillPacks = { "Main" }
+	SkillPacks = { "Main" },
 })
 
 TempData.SetTemplate({
 	NotLoadedCharacter = true,
 	SkillPacks = {},
 	ActiveSkills = {},
-	BlockMaxDurability = 50
+	BlockMaxDurability = 25,
 })
 
 --// BINDING TO CLOSING OF GAME SAVING DATA OF ALL PLAYERS
@@ -109,14 +109,16 @@ end)
 remoteEvent:On(function(player: Player, action: string)
 	if action == "ReadyForData" then
 		if notLoadedPlayers[player] then
-			repeat task.wait() until not notLoadedPlayers[player]
+			repeat
+				task.wait()
+			until not notLoadedPlayers[player]
 		end
 		if player.Parent ~= Players then
 			return
 		end
 
 		local tempData = TempData.Get(player)
-	
+
 		local givenPacks = {}
 		for packName, _ in tempData.SkillPacks do
 			table.insert(givenPacks, packName)
@@ -132,7 +134,7 @@ remoteEvent:On(function(player: Player, action: string)
 
 		CharacterMaker.Make(player, tempData)
 		tempData.NotLoadedCharacter = nil
-		
+
 		print(player.Name .. " is fully loaded")
 	end
 end)

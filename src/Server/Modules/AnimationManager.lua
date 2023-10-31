@@ -4,7 +4,7 @@ type AnimationData = {
 	Priority: Enum.AnimationPriority?,
 	Speed: number?,
 	Weight: number?,
-	FadeTime: number?
+	FadeTime: number?,
 }
 type Target = Model | Humanoid | AnimationController | Animator
 
@@ -25,20 +25,6 @@ local function getAnimator(target: Target)
 	end
 end
 
-local function loadData(animationTrack: AnimationTrack, data: AnimationData)
-	local weight = data.Weight
-	local fadeTime = data.FadeTime
-	if weight or fadeTime then
-		animationTrack:AdjustWeight(weight, fadeTime)
-	end
-
-	for key, value in data do
-		if key ~= "Weight" and key ~= "FadeTime" then
-			animationTrack[key] = value
-		end
-	end
-end
-
 --// MODULE FUNCTIONS
 function AnimationManager.Load(target: Target, animation: Animation | AnimationTrack, data: AnimationData)
 	local animator = getAnimator(target)
@@ -52,7 +38,17 @@ function AnimationManager.Load(target: Target, animation: Animation | AnimationT
 	end
 
 	if data then
-		loadData(animationTrack, data)
+		local weight = data.Weight
+		local fadeTime = data.FadeTime
+		if weight or fadeTime then
+			animationTrack:AdjustWeight(weight, fadeTime)
+		end
+
+		for key, value in data do
+			if key ~= "Weight" and key ~= "FadeTime" then
+				animationTrack[key] = value
+			end
+		end
 	end
 
 	animationTrack.Ended:Connect(function()
@@ -62,7 +58,12 @@ function AnimationManager.Load(target: Target, animation: Animation | AnimationT
 	return animationTrack
 end
 
-function AnimationManager.Play(target: Target, animation: Animation | AnimationTrack, fadeInTime: number?, data: AnimationData)
+function AnimationManager.Play(
+	target: Target,
+	animation: Animation | AnimationTrack,
+	fadeInTime: number?,
+	data: AnimationData
+)
 	AnimationManager.Load(target, animation, data):Play(fadeInTime)
 end
 
@@ -91,7 +92,7 @@ function AnimationManager.Stop(target: Target, animation: AnimationTrack | Anima
 	elseif animation:IsA("AnimationTrack") then
 		animationTrack = animation
 	end
-	
+
 	animationTrack:Stop(fadeOutTime)
 end
 

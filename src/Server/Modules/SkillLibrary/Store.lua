@@ -34,7 +34,7 @@ for _, dataModule in SKILLS_FOLDER:GetChildren() do
 
 			pack[skillName] = {
 				Data = skillData,
-				Functions = result
+				Functions = result,
 			}
 		else
 			warn("Skill module " .. packName .. "_" .. skillModule.Name .. " threw an error: " .. result)

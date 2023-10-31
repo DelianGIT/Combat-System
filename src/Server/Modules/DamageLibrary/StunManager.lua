@@ -7,7 +7,7 @@ export type Config = {
 	Priority: number,
 	Duration: number,
 	WalkSpeed: number,
-	JumpPower: number
+	JumpPower: number,
 }
 
 --// CONFIG
@@ -31,7 +31,7 @@ function StunManager.Apply(character: Model, tempData: {}, config: Config)
 	local startTime = tick()
 	tempData.Stun = {
 		StartTime = startTime,
-		Priority = priority
+		Priority = priority,
 	}
 
 	local duration = config.Duration
@@ -56,7 +56,10 @@ function StunManager.Apply(character: Model, tempData: {}, config: Config)
 	end
 
 	if VISUALIZATION then
-		character.StunVisualization.Color = Color3.new(1, 0, 0)
+		local visualization = character:FindFirstChild("StunVisualization")
+		if visualization then
+			visualization.Color = Color3.new(1, 0, 0)
+		end
 	end
 end
 
@@ -71,7 +74,10 @@ function StunManager.Cancel(character: Model, tempData: {})
 	tempData.Stun = nil
 
 	if VISUALIZATION then
-		character.StunVisualization.Color = Color3.new(0, 1, 0)
+		local visualization = character:FindFirstChild("StunVisualization")
+		if visualization then
+			visualization.Color = Color3.new(0, 1, 0)
+		end
 	end
 end
 

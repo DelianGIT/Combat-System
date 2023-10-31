@@ -14,7 +14,7 @@ function CallValidator.Start(skillName: string, identifier: string, tempData: {}
 	if tempData.CantUseSkills or tempData.Stun then
 		return
 	end
-	
+
 	local requirements = skillData.Requirements
 	if requirements then
 		for key, value in requirements do
@@ -30,7 +30,7 @@ function CallValidator.Start(skillName: string, identifier: string, tempData: {}
 			end
 		end
 	end
-	
+
 	return true
 end
 
@@ -46,7 +46,7 @@ function CallValidator.End(activeSkill: {}, skillFunctions: {})
 	if not skillFunctions.End then
 		return
 	end
-	
+
 	return true
 end
 
@@ -58,7 +58,7 @@ function CallValidator.Interrupt(ignoreChecks: boolean, activeSkill: {}, skillDa
 	if not skillData.Interruptable then
 		return
 	end
-	
+
 	if not activeSkill then
 		return
 	end

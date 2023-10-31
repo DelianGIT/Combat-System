@@ -11,7 +11,7 @@ export type Event = {
 	Connect: (self: Event, action: string, functionToConnect: (any) -> ()) -> (),
 	Once: (self: Event, action: string, functionToConnect: (any) -> ()) -> (),
 	Wait: (self: Event, action: string, functionToConnect: (any) -> ()) -> (),
-	Disconnect: (self: Event, action: string) -> ()
+	Disconnect: (self: Event, action: string) -> (),
 }
 export type Communicator = {
 	Player: Player,
@@ -19,7 +19,7 @@ export type Communicator = {
 
 	CreateEvent: (self: Communicator, name: string) -> (),
 	DestroyEvent: (self: Communicator, name: string) -> (),
-	Destroy: (self: Communicator) -> ()
+	Destroy: (self: Communicator) -> (),
 }
 
 --// CLASSES
@@ -72,7 +72,7 @@ function Communicator:CreateEvent(name: string): Event
 	local event = setmetatable({
 		Name = name,
 		Player = self.Player,
-		Connections = {}
+		Connections = {},
 	}, Event)
 
 	self.Events[name] = event
@@ -118,11 +118,11 @@ return {
 	new = function(player: Player): Communicator
 		local communicator = setmetatable({
 			Player = player,
-			Events = {}
+			Events = {},
 		}, Communicator)
 
 		communicators[player] = communicator
 
 		return communicator
-	end
+	end,
 }

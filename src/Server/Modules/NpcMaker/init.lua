@@ -14,7 +14,7 @@ type Npc = {
 	Name: string,
 	Number: number,
 	Character: Model,
-	TempData: {}
+	TempData: {},
 }
 
 --// VARIABLES
@@ -27,15 +27,15 @@ local NpcMaker = {}
 TempData.SetTemplate({
 	SkillPacks = {},
 	ActiveSkills = {},
-	BlockMaxDurability = 50,
-	IsNpc = true
+	BlockMaxDurability = 25,
+	IsNpc = true,
 })
 
 --// FUNCTIONS
 local function getArray(npcName: string)
 	local array = spawnedNpc[npcName]
 	if not array then
-		array = {Counter = 0}
+		array = { Counter = 0 }
 		spawnedNpc[npcName] = array
 	end
 	return array
@@ -81,7 +81,7 @@ function NpcMaker.Spawn(name: string, cframe: CFrame): Npc
 		Name = name,
 		Number = counter,
 		Character = character,
-		TempData = tempData
+		TempData = tempData,
 	}
 
 	humanoid.Died:Connect(function()
@@ -96,7 +96,7 @@ function NpcMaker.Spawn(name: string, cframe: CFrame): Npc
 	if spawnedFunction then
 		task.spawn(spawnedFunction, npc, character, tempData)
 	end
-		
+
 	return npc
 end
 

@@ -13,18 +13,19 @@ local BlockManager = require(script.BlockManager)
 local KnockbackManager = require(script.KnockbackManager)
 
 --// TYPES
-type DamageResult = "Hit" | "CounterSkill" | "BlockHit" | "BlockBreak" | "PerfectBlock"
+type DamageResult = "Hit" | "CounterFunction" | "BlockHit" | "BlockBreak" | "PerfectBlock"
 type Config = {
 	Amount: number,
 
 	Interrupting: boolean,
 	MutualKnockback: boolean,
+	Blockable: boolean,
 
 	Knockback: KnockbackManager.Config,
 	Stun: StunManager.Config,
 	Block: BlockManager.Config,
 
-	HitFunction: () -> ()
+	HitFunction: () -> (),
 }
 
 --// VARIABLES
@@ -40,7 +41,13 @@ function DamageLibrary.MakeConfig(): Config
 	return {}
 end
 
-function DamageLibrary.Deal(aPlayer: Model, aCharacter: Model, aTempData: {}, tCharacter: Model, config: Config)
+function DamageLibrary.Deal(
+	aPlayer: Model,
+	aCharacter: Model,
+	aTempData: {},
+	tCharacter: Model,
+	config: Config
+): DamageResult
 	local tHumanoid = tCharacter.Humanoid
 	if tHumanoid.Health <= 0 then
 		return
@@ -54,16 +61,26 @@ function DamageLibrary.Deal(aPlayer: Model, aCharacter: Model, aTempData: {}, tC
 		tTempData = NpcTempData.Get(tCharacter)
 	end
 
-	local counterSkill = tTempData.CounterSkill
-	if counterSkill then
-		tTempData.CounterSkill = nil
-		counterSkill(aPlayer, aCharacter, aTempData, config.Amount)
-		return "CounterSkill"
+	local counterFunction = tTempData.CounterFunction
+	if counterFunction then
+		tTempData.CounterFunction = nil
+		counterFunction(aPlayer, aCharacter, aTempData, config.Amount)
+		return "CounterFunction"
 	end
 
-	local block = tTempData.Block
-	if block then
-		return BlockManager.ProcessBlock(aCharacter, aTempData, tPlayer, tCharacter, tTempData, config.Amount, config.Block)
+	if config.Blockable then
+		local tBlock = tTempData.Block
+		if tBlock then
+			return BlockManager.ProcessBlock(
+				aCharacter,
+				aTempData,
+				tCharacter,
+				tTempData,
+				tBlock,
+				config.Amount,
+				config.Block
+			)
+		end
 	end
 
 	local damageAmount = config.Amount
