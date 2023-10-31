@@ -3,8 +3,8 @@ local TweenService = game:GetService("TweenService")
 
 --// CONFIG
 local DURATION = 0.35
-local FILL_TRANSPARENCY = 0.25
-local OUTLINE_TRANSPARENCY = 0.25
+local FILL_TRANSPARENCY = 0.2
+local OUTLINE_TRANSPARENCY = 0
 
 --// VARIABLES
 local highlight = Instance.new("Highlight")

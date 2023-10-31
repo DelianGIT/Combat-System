@@ -7,15 +7,19 @@ local ParticleEmitter = require(SharedModules.ParticleEmitter)
 
 --// VARIABLES
 local effectsFolder = ReplicatedStorage.Effects.Main
-local effect = effectsFolder.PunchHit.Attachment
+local effect = effectsFolder.PunchHit
 
 return function(target: Model, _, attacker: Model)
 	local tHumanoidRootPart = target.HumanoidRootPart
 	local aPosition = attacker.HumanoidRootPart.Position
 
-	local attachment = effect:Clone()
-	attachment.Parent = tHumanoidRootPart
-	attachment.WorldCFrame = CFrame.lookAt(tHumanoidRootPart.Position, aPosition)
+	local part = effect:Clone()
+	part.CFrame = CFrame.lookAt(tHumanoidRootPart.Position, aPosition)
+	part.Parent = tHumanoidRootPart
 
-	ParticleEmitter.EmitAndDestroy(tHumanoidRootPart, attachment, true)
+	ParticleEmitter.Emit(tHumanoidRootPart, part.Attachment, true)
+	
+	task.delay(0.5, function()
+		part:Destroy()
+	end)
 end

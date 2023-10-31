@@ -25,9 +25,9 @@ local function punchDamage(player: Player | {}, character: Model, tempData: {}, 
 
 		Knockback = {
 			Priority = 1,
-			Force = Vector3.one * 30000,
+			Force = Vector3.one * 3e4,
 			Duration = 0.15,
-			Length = 15,
+			Length = 10,
 
 			Vector = lookVector,
 		},
@@ -73,7 +73,7 @@ local function lastPunchDamage(
 
 		Knockback = {
 			Priority = 1,
-			Force = Vector3.one * 100000,
+			Force = Vector3.one * 1e5,
 			Duration = 0.15,
 			Length = 50,
 
@@ -107,7 +107,7 @@ end
 
 --// SKILL FUNCTIONS
 return {
-	Start = function(args: {})
+	Start = function(args: {}, _: boolean)
 		local character = args.Character
 		local rootCFrame = character.HumanoidRootPart.CFrame
 		local lookVector = rootCFrame.LookVector
