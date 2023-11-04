@@ -21,11 +21,13 @@ return {
 		})
 
 		local bodyVelocity = BodyMover.BodyVelocity(character)
-		bodyVelocity.MaxForce = MAX_FORCE
-		bodyVelocity.Velocity = direction.Unit * Vector3.new(1, 0, 1) * LENGTH
-
-		task.delay(0.3, function()
-			bodyVelocity:Destroy()
-		end)
+		if bodyVelocity then
+			bodyVelocity.MaxForce = MAX_FORCE
+			bodyVelocity.Velocity = direction.Unit * Vector3.new(1, 0, 1) * LENGTH
+	
+			task.delay(0.3, function()
+				bodyVelocity:Destroy()
+			end)
+		end
 	end,
 }

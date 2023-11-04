@@ -54,6 +54,16 @@ function KnockbackManager.Apply(character: Model, tempData: {}, config: Config)
 		return
 	end
 
+	local bodyVelocity
+	if existingKnockback then
+		bodyVelocity = existingKnockback.BodyVelocity
+	else
+		bodyVelocity = BodyMover.BodyVelocity(character)
+	end
+	if not bodyVelocity then
+		return
+	end
+
 	local direction
 	if config.FromPoint then
 		local characterPosition = character.HumanoidRootPart.Position
@@ -63,12 +73,6 @@ function KnockbackManager.Apply(character: Model, tempData: {}, config: Config)
 	end
 	direction = direction.Unit * config.Length
 
-	local bodyVelocity
-	if existingKnockback then
-		bodyVelocity = existingKnockback.BodyVelocity
-	else
-		bodyVelocity = BodyMover.BodyVelocity(character)
-	end
 	bodyVelocity.Velocity = direction
 	bodyVelocity.MaxForce = config.Force
 

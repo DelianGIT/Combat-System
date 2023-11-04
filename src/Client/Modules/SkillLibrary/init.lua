@@ -72,7 +72,7 @@ local function makeKeybinds(packName: string, skillName: string, skillData: {}, 
 	local inputKey = keybindInfo.Key
 	local externalArg = keybindInfo.HoldDuration or keybindInfo.ClickFrame
 
-	guiList:AddSkill(skillName, inputKey)
+	guiList:AddSkill(skillName, inputKey, skillData.LayoutOrder)
 
 	local beginKeybind
 	if externalArg then

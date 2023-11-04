@@ -20,7 +20,7 @@ return {
 		},
 	},
 
-	Sprint = {
+	Run = {
 		Cooldown = {
 			Duration = 0,
 			Type = "End",

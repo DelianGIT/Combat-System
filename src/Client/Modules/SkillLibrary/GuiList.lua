@@ -61,6 +61,12 @@ local pressedTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.Easing
 local unpressedTweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 local activationTweenInfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 
+local keybindNames = {
+	[Enum.UserInputType.MouseButton1] = "MB1",
+	[Enum.UserInputType.MouseButton2] = "MB2",
+	[Enum.KeyCode.LeftShift] = "Shift",
+	[Enum.KeyCode.LeftControl] = "Ctrl",
+}
 local activeSkills = {}
 
 --// MODULE FUNCTIONS
@@ -212,19 +218,14 @@ function GuiList:StartCooldown(skillName: string, duration: number)
 	end)
 end
 
-function GuiList:AddSkill(skillName: string, keybind: Enum.KeyCode | Enum.UserInputType)
+function GuiList:AddSkill(skillName: string, keybind: Enum.KeyCode | Enum.UserInputType, layoutOrder: number)
 	local skill = skillTemplate:Clone()
 	skill.Name = skillName
+	skill.LayoutOrder = layoutOrder
 	skill.SkillName.Value.Text = skillName
 
 	local keybindFrame = skill.Keybind
-	if keybind == Enum.UserInputType.MouseButton1 then
-		keybindFrame.Value.Text = "MB1"
-	elseif keybind == Enum.UserInputType.MouseButton2 then
-		keybindFrame.Value.Text = "MB2"
-	else
-		keybindFrame.Value.Text = keybind.Name
-	end
+	keybindFrame.Value.Text = keybindNames[keybind] or keybind.Name
 
 	skill.Visible = true
 	skill.Parent = self.List

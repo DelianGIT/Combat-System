@@ -1,7 +1,8 @@
 return {
 	Punch = {
 		Combo = 1,
-		PunchTime = math.huge,
+		InAirCombo = false,
+		PunchTime = math.huge
 	},
 
 	Block = {
@@ -9,7 +10,8 @@ return {
 		BrokeBlock = false,
 	},
 
-	Sprint = {
+	Run = {
+		Enabled = false,
 		Interruptable = true,
 	},
 }

@@ -4,6 +4,8 @@ return {
 			Key = Enum.UserInputType.MouseButton1,
 			State = "Begin",
 		},
+
+		LayoutOrder = 1
 	},
 
 	Block = {
@@ -13,6 +15,8 @@ return {
 		},
 
 		HasEnd = true,
+
+		LayoutOrder = 2
 	},
 
 	Dash = {
@@ -20,15 +24,16 @@ return {
 			Key = Enum.KeyCode.Q,
 			State = "Begin",
 		},
+
+		LayoutOrder = 3
 	},
 
-	Sprint = {
+	Run = {
 		Keybind = {
-			Key = Enum.KeyCode.W,
-			State = "DoubleClick",
-			ClickFrame = 0.25,
+			Key = Enum.KeyCode.LeftControl,
+			State = "Begin",
 		},
 
-		HasEnd = true,
+		LayoutOrder = 4
 	},
 }

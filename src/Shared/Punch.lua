@@ -9,15 +9,35 @@ local Hitbox = require(SharedModules.Hitbox)
 local ServerModules = ServerStorage.Modules
 local ClientHitbox = require(ServerModules.ClientHitbox)
 local DamageLibrary = require(ServerModules.DamageLibrary)
+local WalkSpeedManager = DamageLibrary.WalkSpeedManager
+local JumpPowerManager = DamageLibrary.JumpPowerManager
 local VfxController = require(ServerModules.VfxController)
+local BodyMover = require(ServerModules.BodyMover)
 
 --// CONFIG
+local SLOWDOWN_DURATION = 0.75
 local COMBO_FRAME = 3
+local AIR_COMBO_START = 4
 local HITBOX_SIZE = Vector3.new(5, 5, 5)
 
 --// FUNCTIONS
+local function raisePlayer(character:Model, position: Vector3)
+	local alignPosition = BodyMover.AlignPosition(character)
+	if alignPosition then
+		alignPosition.Position = position
+		alignPosition.ApplyAtCenterOfMass = true
+		alignPosition.MaxForce = 3e5
+		alignPosition.MaxVelocity = math.huge
+		alignPosition.Responsiveness = 35
+
+		task.delay(3, function()
+			alignPosition:Destroy()
+		end)
+	end
+end
+
 local function punchDamage(player: Player | {}, character: Model, tempData: {}, hit: Model, lookVector: Vector3)
-	DamageLibrary.Deal(player, character, tempData, hit, {
+	return DamageLibrary.Deal(player, character, tempData, hit, {
 		Amount = 5,
 
 		Interrupting = true,
@@ -74,8 +94,8 @@ local function lastPunchDamage(
 		Knockback = {
 			Priority = 1,
 			Force = Vector3.one * 1e5,
-			Duration = 0.15,
-			Length = 50,
+			Duration = 0.1,
+			Length = 75,
 
 			Vector = lookVector + rootCFrame.UpVector * 0.5,
 		},
@@ -107,7 +127,7 @@ end
 
 --// SKILL FUNCTIONS
 return {
-	Start = function(args: {}, _: boolean)
+	Start = function(args: {}, isSpaceDown: boolean)
 		local character = args.Character
 		local rootCFrame = character.HumanoidRootPart.CFrame
 		local lookVector = rootCFrame.LookVector
@@ -128,16 +148,48 @@ return {
 		skillData.PunchTime = os.clock()
 
 		local tempData = args.TempData
+		WalkSpeedManager.Change(character, tempData, {
+			Value = 6,
+			Duration = SLOWDOWN_DURATION,
+			Priority = 1
+		})
+
+		local isAirCombo = skillData.Combo == AIR_COMBO_START and isSpaceDown and not skillData.AirCombo
+
 		if not tempData.IsNpc then
 			args.Event:Wait("", function(lookVector2: Vector3, hits: {})
 				lookVector2 = lookVector2.Unit
 				hitboxPosition = hitboxPosition.Position
 
+				local isHitted
 				local player = args.Player
 				for _, hit in hits do
-					if ClientHitbox.Validate(player, hit, hitboxPosition) then
-						punchFunc(player, character, tempData, hit, lookVector2, rootCFrame)
+					if not ClientHitbox.Validate(player, hit, hitboxPosition) then
+						return
 					end
+
+					local result = punchFunc(player, character, tempData, hit, lookVector2, rootCFrame)
+					if result == "Hit" then
+						isHitted = true
+
+						if isAirCombo then
+							isAirCombo = false
+							skillData.AirCombo = true
+
+							local hitPosition = hit.HumanoidRootPart.Position
+							local position = rootCFrame.Position + Vector3.yAxis * 15
+							raisePlayer(hit, Vector3.new(hitPosition.X, position.Y, hitPosition.Z))
+							raisePlayer(character, position)
+						end
+					end
+				end
+
+				if isHitted then
+					JumpPowerManager.Change(character, tempData, {
+						Value = 0,
+						Duration = 1,
+						Priority = 1
+					})
 				end
 			end)
 		else
